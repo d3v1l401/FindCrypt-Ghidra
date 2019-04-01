@@ -30,19 +30,22 @@ The database is a binary file I serialized myself, it's very easy to understand 
 The database contains all of the **79** algorithms constants implemented by Ilfak, no sacrifices have been made while migrating them.
 
 These are the supported algorithms, currently stored in the database being used.
-| Category | Names |
-|----------|-------|
-| **Block ciphers** | Blowfish, Camellia, DES, TripleDES, RC2, SHARK, Cast, Square, WAKE, Skipjack |
-| **Hash funcions** | Whirlpool, MD2, MD4, MD5, SHA-1, SHA-256, SHA-384, SHA512, Tiger, RIPEMD160, HAVAL |
-| **AES Family** | AES, RC5/RC6, MARS, Twofish, CAST-256, GOST, SAFER |
-| **Compression** | ZLib |
+|    Category    | Names                                                                              |
+|:--------------:|------------------------------------------------------------------------------------|
+|  Block ciphers | Blowfish, Camellia, DES, TripleDES, RC2, SHARK, Cast, Square, WAKE, Skipjack       |
+| Hash functions | Whirlpool, MD2, MD4, MD5, SHA-1, SHA-256, SHA-384, SHA512, Tiger, RIPEMD160, HAVAL |
+|   AES Family   | AES, RC5/RC6, MARS, Twofish, CAST-256, GOST, SAFER                                 |
+| Compression    | ZLib                                                                               |
 
 To include more constants of your choice, simply refer to the "FCExporter" project and perhaps also share your new entries :)
 
 # Credits
 d3vil401 - d3vil401@protonmail.com / d3vil401@d3vsite.org / https://d3vsite.org/ 
+
 Ilfak Guilfanov - @ilfak
+
 NSA (Ghidra) - https://ghidra-sre.org/
+
 
 ![Ghidra Logo](https://media.defense.gov/2019/Mar/05/2002096238/400/400/0/190503-D-IM742-3002.PNG)
 
