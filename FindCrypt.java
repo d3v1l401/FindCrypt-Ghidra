@@ -684,6 +684,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.io.File;
 
 import docking.widgets.dialogs.MultiLineMessageDialog;
 import ghidra.app.script.GhidraScript;
