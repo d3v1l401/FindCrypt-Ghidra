@@ -45,6 +45,25 @@ These are the supported algorithms, currently stored in the database being used.
 
 To include more constants of your choice, simply refer to the "FCExporter" project and perhaps also share your new entries :)
 
+#### Database Updating
+
+The database plugin is now using an internal auto update system synchronized with the latest database version in this repository.
+The centralized repository synchronization is by default turned on, this is to ensure the user to always have the latest version possible
+with the best result possible, if you wish to turn it off until next manual activation:
+
+1. Open the "FindCrypt.java" file and find the '__FORCE_NO_UPDATE' variable (line 707)
+2. Replace "false" with "true".
+3. Save and replace it (or update it without replacement).
+
+#### Script Updating
+
+While the database is by design modular and can be updated automatically, the script can not; but the script will check the current version and prompt
+the user to check this repository latest version for download.
+
+Proceed to download the latest version and replace the folder in the user's documents.
+
+Also this version is turned on by default, if you wish to disable it, follow above mentioned steps on '__FORCE_NO_SCRIPTUPDATE' (line 708).
+
 # Credits
 d3vil401 - d3vil401@protonmail.com / d3vil401@d3vsite.org / https://d3vsite.org/ 
 

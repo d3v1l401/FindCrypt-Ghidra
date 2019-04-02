@@ -677,14 +677,21 @@
 
 import java.io.BufferedInputStream;
 import java.io.DataInputStream;
+import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.channels.Channels;
+import java.nio.channels.FileChannel;
+import java.nio.channels.ReadableByteChannel;
+import java.security.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.io.File;
 
 import docking.widgets.dialogs.MultiLineMessageDialog;
 import ghidra.app.script.GhidraScript;
@@ -694,7 +701,11 @@ import ghidra.util.Msg;
 
 public class FindCrypt extends GhidraScript {
 	private static final boolean IS_DEBUG = false;
-	private static final String __DEFAULT_LOAD_DIR = "findcrypt_ghidra" + File.separator + "database.d3v";
+	private static final String __DEFAULT_LOAD_BASEDIR = System.getProperty("user.home") + File.separator + "findcrypt_ghidra" + File.separator;
+	private static final String __DEFAULT_LOAD_DIR =  __DEFAULT_LOAD_BASEDIR + "database.d3v";
+	
+	private static final boolean __FORCE_NO_UPDATE = false;
+	private static final boolean __FORCE_NO_SCRIPTUPDATE = false;
 	
 	/////////////////////////////////////////////////////////
 	//													   //
@@ -712,6 +723,69 @@ public class FindCrypt extends GhidraScript {
 		}
 	}
 	
+	public static class UpdateManager {
+		private static final String __DEFAULT_UPDATE_URLBASE = "https://raw.githubusercontent.com/d3v1l401/FindCrypt-Ghidra/master/findcrypt_ghidra";
+		
+		public static boolean CheckForScriptUpdate() {
+			
+			URL url;
+			try {
+				url = new URL(__DEFAULT_UPDATE_URLBASE + "/script_update.txt");
+				URLConnection urlConnection = url.openConnection();
+				InputStream in = new BufferedInputStream(urlConnection.getInputStream());
+
+				var _last = Integer.parseInt(new String(in.readAllBytes(), "UTF-8"));
+				var _local = Integer.parseInt(new String(new FileInputStream(__DEFAULT_LOAD_BASEDIR + "script_update.txt").readAllBytes(), "UTF-8"));
+				
+				if (_last > _local) {
+					MultiLineMessageDialog.showMessageDialog(null, "FindCrypt Ghidra",
+							"New script update is available, please proceed to the repository URL to download the latest version.", "https://github.com/d3v1l401/FindCrypt-Ghidra", 1);
+				}
+				
+				
+			} catch (Exception e) {
+				return false;
+			}
+			
+			return true;
+		}
+		
+		public static boolean CheckForUpdates() {
+			
+			URL url;
+			try {
+				url = new URL(__DEFAULT_UPDATE_URLBASE + "/last_update.txt");
+				URLConnection urlConnection = url.openConnection();
+				InputStream in = new BufferedInputStream(urlConnection.getInputStream());
+
+				var _last = Integer.parseInt(new String(in.readAllBytes(), "UTF-8"));
+				var _local = Integer.parseInt(new String(new FileInputStream(__DEFAULT_LOAD_BASEDIR + "last_update.txt").readAllBytes(), "UTF-8"));
+				
+				if (_last > _local) {
+					url = new URL(__DEFAULT_UPDATE_URLBASE + "/database.d3v");
+					ReadableByteChannel readableByteChannel = Channels.newChannel(url.openStream());
+
+					new File(__DEFAULT_LOAD_DIR).delete();
+					FileOutputStream fileOutputStream = new FileOutputStream(__DEFAULT_LOAD_DIR);
+					FileChannel fileChannel = fileOutputStream.getChannel();
+					fileOutputStream.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
+					fileOutputStream.close();
+					
+					// Replace cur_version.txt
+					new File(__DEFAULT_LOAD_BASEDIR + "/last_update.txt").delete();
+					var _handle = new FileWriter(__DEFAULT_LOAD_BASEDIR + "/last_update.txt");
+					_handle.write(String.valueOf(_last));
+					_handle.close();
+				}
+				
+				
+			} catch (Exception e) {
+				return false;
+			}
+			
+			return true;
+		}
+	}
 
 	public static class EntryManager {
 		
@@ -727,39 +801,22 @@ public class FindCrypt extends GhidraScript {
 		 * NameSize (4) | Name (x) | isCompressed(1) | Buffer |
 		 ******************************************************/
 		
-		public static boolean CheckForUpdates() {
-			// I'm working on this, would love to bring it to GitHub instead of my host.
-			// Give it time and I'll put something cool.
-			
-			URL url;
-			try {
-				url = new URL("https://d3vsite.org/ghidra_fc.txt");
-
-				URLConnection urlConnection = url.openConnection();
-				InputStream in = new BufferedInputStream(urlConnection.getInputStream());
-
-				
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-			return false;
-		}
-		
 		public static boolean Initialize() throws IOException {
 			
 			if (!_loaded) {
-				String cwd = System.getProperty("user.home");
-				
 				if (IS_DEBUG) {
-					System.out.println("Supposedly loading database from " + cwd + __DEFAULT_LOAD_DIR);
+					System.out.println("Supposedly loading database from " + __DEFAULT_LOAD_DIR);
 				}
 				
-				//if (EntryManager.CheckForUpdates()) {
-					// We have to make an update.
-					
-				//}
+				// I'd avoid printing an error, not everybody might be connected over internet.
+				// It will just retry every time Ghidra is used, until success.
+				if (!__FORCE_NO_UPDATE)
+					UpdateManager.CheckForUpdates();
+				
+				if (!__FORCE_NO_SCRIPTUPDATE)
+					UpdateManager.CheckForScriptUpdate();
 
-				DataInputStream _stream = new DataInputStream(new FileInputStream(cwd + File.separator + __DEFAULT_LOAD_DIR));
+				DataInputStream _stream = new DataInputStream(new FileInputStream(__DEFAULT_LOAD_DIR));
 
 				var _fmagic = _stream.readInt();
 				if (_fmagic != _Magic) {
@@ -851,9 +908,9 @@ public class FindCrypt extends GhidraScript {
 			}
 		}
 		
-		// Show results.
-		// This is really...meh...I'll try to find a way to show results in a cuter way.
-		MultiLineMessageDialog.showMessageDialog(null, "FindCrypt Ghidra", "Results found in the application, refer to XREF to find usage locations.", _formatted, 0);
+		// Only show results if something has been found.
+		if (_formatted.length() > 1)
+			MultiLineMessageDialog.showMessageDialog(null, "FindCrypt Ghidra (d3vil401)", "Results found in the application, refer to XREF to find usage locations.", _formatted, 1);
 		
 		_formatted = "";
 	}
