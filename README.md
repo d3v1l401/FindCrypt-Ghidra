@@ -27,10 +27,15 @@ by double clicking or pressing "Run" will execute the script and a result screen
 ### Database
 
 The database is a binary file I serialized myself, it's very easy to understand and very basic but functional for its goal.
-The database contains all of the **79** algorithms constants implemented by Ilfak, no sacrifices have been made while migrating them.
+The database contains all of the **79** algorithms constants implemented by Ilfak, no sacrifices have been made while migrating them, while also adding 
+more and more by the contributors.
 
 These are the supported algorithms, currently stored in the database being used.
 
+* **Encoders**
+	* Base64, Base32
+* **Stream ciphers** 
+	* Chacha
 * **Block ciphers**
     * Blowfish, Camellia, DES, TripleDES, RC2, SHARK, Cast, Square, WAKE, Skipjack 
 * **Hash funcions** 

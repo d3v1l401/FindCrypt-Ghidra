@@ -140,7 +140,7 @@ int main(int argc, char* argv[]) {
 		// NON SPARSE SERIALIZE   //
 		////////////////////////////
 		cout << " |---- NON-SPARSE CONSTANTS\n |" << std::endl;
-		for (auto i = 0; i < 78; i++) {
+		for (auto i = 0; i < 84; i++) {
 			if (!db->AddEntry((unsigned char*)non_sparse_consts[i].array, non_sparse_consts[i].size, non_sparse_consts[i].name))
 				cout << " |--[" << i << "] \"" << non_sparse_consts[i].name << "\" failed to add due to corrupted cast." << std::endl;
 			else
