@@ -693,7 +693,7 @@ import ghidra.util.Msg;
 
 public class FindCrypt extends GhidraScript {
 	private static final boolean IS_DEBUG = false;
-	private static final String __DEFAULT_LOAD_DIR = "findcrypt_ghidra\\database.d3v";
+	private static final String __DEFAULT_LOAD_DIR = "findcrypt_ghidra" + File.separator + "database.d3v";
 	
 	/////////////////////////////////////////////////////////
 	//													   //
@@ -758,7 +758,7 @@ public class FindCrypt extends GhidraScript {
 					
 				//}
 
-				DataInputStream _stream = new DataInputStream(new FileInputStream(cwd + "\\" + __DEFAULT_LOAD_DIR));
+				DataInputStream _stream = new DataInputStream(new FileInputStream(cwd + File.separator + __DEFAULT_LOAD_DIR));
 
 				var _fmagic = _stream.readInt();
 				if (_fmagic != _Magic) {
@@ -852,7 +852,7 @@ public class FindCrypt extends GhidraScript {
 		
 		// Show results.
 		// This is really...meh...I'll try to find a way to show results in a cuter way.
-		MultiLineMessageDialog.showMessageDialog(null, "FindCrypt Ghidra (d3vil401)", "Results found in the application, refer to XREF to find usage locations.", _formatted, 0);
+		MultiLineMessageDialog.showMessageDialog(null, "FindCrypt Ghidra", "Results found in the application, refer to XREF to find usage locations.", _formatted, 0);
 		
 		_formatted = "";
 	}

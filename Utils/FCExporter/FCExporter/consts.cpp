@@ -8618,10 +8618,10 @@ const int b32_s_hexArray[256] = {
 const array_info_t non_sparse_consts[] =
 {
 
-  { ARR(b32_s_array),					  "Base32"         },
-  { ARR(b32_s_hexArray),				  "Base32"         },
-  { ARR(b64_stdArray),					  "Base64"         },
-  { ARR(b64_urlArray),					  "Base64"         },
+  //{ ARR(b32_s_array),					  "Base32"         },
+  //{ ARR(b32_s_hexArray),				  "Base32"         },
+  //{ ARR(b64_stdArray),					  "Base64"         },
+  //{ ARR(b64_urlArray),					  "Base64"         },
   { ARR(ChaChaInitStates_expanded32k),	  "ChaCha"         },
   { ARR(ChaChaInitStates_expanded16k),	  "ChaCha"		   },
   { ARR(BLAKE2_IV),						  "BLAKE2"		   },

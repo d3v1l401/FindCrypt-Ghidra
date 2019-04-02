@@ -32,8 +32,6 @@ more and more by the contributors.
 
 These are the supported algorithms, currently stored in the database being used.
 
-* **Encoders**
-	* Base64, Base32
 * **Stream ciphers** 
 	* Chacha
 * **Block ciphers**
