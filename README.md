@@ -6,7 +6,7 @@ As most of you know, FindCrypt, a plugin made by nonetheless than Ilfak himself 
 
 I'm trying to move to Ghidra and the very first thing I noticed is how important is the plugin to me, so I took the responsibility to migrate it, in Java, without sacrificing any signature.
 
-![Demo](https://puu.sh/D8HVe/f75ea40074.gif)
+![Demo](https://github.com/d3v1l401/FindCrypt-Ghidra/blob/master/Misc/demo.gif)
 
 **This software is being developed and tested, if you encounter any problem please proceed into the Issues section**
 
@@ -22,7 +22,7 @@ I'm trying to move to Ghidra and the very first thing I noticed is how important
 Once you started your project and opened the disassembler, use the Script Manager window and search for "FindCrypt.java",
 by double clicking or pressing "Run" will execute the script and a result screen is shown if something is found.
 
-![Example result](https://puu.sh/D8HKE/ccd8a3c479.png)
+![Example result](https://github.com/d3v1l401/FindCrypt-Ghidra/blob/master/Misc/resDemo.png)
 
 ### Database
 
