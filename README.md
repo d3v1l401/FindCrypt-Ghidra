@@ -51,7 +51,7 @@ The database plugin is now using an internal auto update system synchronized wit
 The centralized repository synchronization is by default turned on, this is to ensure the user to always have the latest version possible
 with the best result possible, if you wish to turn it off until next manual activation:
 
-1. Open the "FindCrypt.java" file and find the '__FORCE_NO_UPDATE' variable (line 707)
+1. Open the "FindCrypt.java" file and find the '__FORCE_NO_UPDATE' variable (line 707).
 2. Replace "false" with "true".
 3. Save and replace it (or update it without replacement).
 
@@ -63,6 +63,8 @@ the user to check this repository latest version for download.
 Proceed to download the latest version and replace the folder in the user's documents.
 
 Also this version is turned on by default, if you wish to disable it, follow above mentioned steps on '__FORCE_NO_SCRIPTUPDATE' (line 708).
+
+![Example update](https://github.com/d3v1l401/FindCrypt-Ghidra/blob/master/Misc/updDemo.png)
 
 # Credits
 d3vil401 - d3vil401@protonmail.com / d3vil401@d3vsite.org / https://d3vsite.org/ 
