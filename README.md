@@ -34,7 +34,7 @@ These are the supported algorithms, currently stored in the database being used.
 * **Block ciphers**
     * Blowfish, Camellia, DES, TripleDES, RC2, SHARK, Cast, Square, WAKE, Skipjack 
 * **Hash funcions** 
-    * Whirlpool, MD2, MD4, MD5, SHA-1, SHA-256, SHA-384, SHA512, Tiger, RIPEMD160, HAVAL 
+    * Whirlpool, MD2, MD4, MD5, SHA-1, SHA-256, SHA-384, SHA512, Tiger, RIPEMD160, HAVAL, BLAKE2
 * **AES Family**
     * AES, RC5/RC6, MARS, Twofish, CAST-256, GOST, SAFER 
 * **Compression** 
