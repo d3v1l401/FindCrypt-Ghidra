@@ -14,7 +14,7 @@ I'm trying to move to Ghidra and the very first thing I noticed is how important
 
 1. Find your Ghidra installation directory (e.g. "E:\Reversing Softwares\ghidra_9.0")
 2. Move "FindCrypt.java" into "Ghidra\Features\BytePatterns\ghidra_scripts"
-3. Move "findcrypt_ghidra" (database directory) into "C:\Users\\<your user>\\"
+3. Move "findcrypt_ghidra" (database directory) into "C:\Users\your user\"
 4. Be sure "database.d3v" is inside the "findcrypt_ghidra" directory and is accessible by Ghidra (should be by default).
 
 ## Usage
