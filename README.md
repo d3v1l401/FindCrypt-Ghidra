@@ -62,12 +62,12 @@ the user to check this repository latest version for download.
 
 Proceed to download the latest version and replace the folder in the user's documents.
 
-Also this version is turned on by default, if you wish to disable it, follow above mentioned steps on '__FORCE_NO_SCRIPTUPDATE' (line 708).
+Also this system is turned on by default, if you wish to disable it, follow above mentioned steps on '__FORCE_NO_SCRIPTUPDATE' (line 708).
 
 ![Example update](https://github.com/d3v1l401/FindCrypt-Ghidra/blob/master/Misc/updDemo.png)
 
 # Credits
-d3vil401 - d3vil401@protonmail.com / d3vil401@d3vsite.org / https://d3vsite.org/ 
+d3vil401 - d3vil401@protonmail.com, d3vil401#7685 (Discord), https://d3vsite.org/
 
 Ilfak Guilfanov - @ilfak
 

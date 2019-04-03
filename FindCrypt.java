@@ -676,6 +676,7 @@
  */
 
 import java.io.BufferedInputStream;
+import java.io.BufferedWriter;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -707,6 +708,9 @@ public class FindCrypt extends GhidraScript {
 	private static final boolean __FORCE_NO_UPDATE = false;
 	private static final boolean __FORCE_NO_SCRIPTUPDATE = false;
 	
+	// Used to enforce script update, allowing user not to replace "script_update.txt" manually if he replaced old script with newest one.
+	private static final String __THIS_VERSION = "2";
+	
 	/////////////////////////////////////////////////////////
 	//													   //
 	// 			CONSTANTS 								   //
@@ -726,7 +730,32 @@ public class FindCrypt extends GhidraScript {
 	public static class UpdateManager {
 		private static final String __DEFAULT_UPDATE_URLBASE = "https://raw.githubusercontent.com/d3v1l401/FindCrypt-Ghidra/master/findcrypt_ghidra";
 		
-		public static boolean CheckForScriptUpdate() {
+		public static String GetChangelog() {
+			URL url;
+			try {
+				url = new URL(__DEFAULT_UPDATE_URLBASE + "/last_chlog.txt");
+				URLConnection urlConnection = url.openConnection();
+				InputStream in = new BufferedInputStream(urlConnection.getInputStream());
+
+				var _lastchLog = new String(in.readAllBytes(), "UTF-8");
+				
+				return _lastchLog;
+				
+				
+			} catch (Exception e) { 
+				return "Error recovering last changelog:\n" + e.getMessage();
+			}
+			
+		}
+		
+		public static boolean CheckForScriptUpdate() throws IOException {
+			
+			// First, enforce current version.
+			new File(__DEFAULT_LOAD_BASEDIR + "script_update.txt").delete();
+			var enf = new FileWriter(__DEFAULT_LOAD_BASEDIR + "script_update.txt");
+			enf.write(__THIS_VERSION);
+			enf.flush();
+			enf.close();
 			
 			URL url;
 			try {
@@ -739,7 +768,7 @@ public class FindCrypt extends GhidraScript {
 				
 				if (_last > _local) {
 					MultiLineMessageDialog.showMessageDialog(null, "FindCrypt Ghidra",
-							"New script update is available, please proceed to the repository URL to download the latest version.", "https://github.com/d3v1l401/FindCrypt-Ghidra", 1);
+							"New script update is available, please proceed to the repository URL to download the latest version.", GetChangelog() + "\n\nhttps://github.com/d3v1l401/FindCrypt-Ghidra", 1);
 				}
 				
 				
@@ -796,17 +825,18 @@ public class FindCrypt extends GhidraScript {
 		
 		private static ArrayList<EntryInfo> _consts = new ArrayList<>();
 		
-		/******************************************************
-		 * MAGIC (4)    | Total Entries (2)          	      |
-		 * NameSize (4) | Name (x) | isCompressed(1) | Buffer |
-		 ******************************************************/
+		/********************************************************
+		 | MAGIC (4)    | Total Entries (2)          	        |
+		 | NameSize (4) | Name (x) | isCompressed(1) | BSize(4) |
+		 | Buffer (x)   | ...                                   |
+		 ********************************************************/
 		
 		public static boolean Initialize() throws IOException {
 			
 			if (!_loaded) {
-				if (IS_DEBUG) {
+				
+				if (IS_DEBUG)
 					System.out.println("Supposedly loading database from " + __DEFAULT_LOAD_DIR);
-				}
 				
 				// I'd avoid printing an error, not everybody might be connected over internet.
 				// It will just retry every time Ghidra is used, until success.
@@ -849,6 +879,7 @@ public class FindCrypt extends GhidraScript {
 				}
 				
 				_stream.close();
+				_loaded = true;
 				return true;
 			} 
 			
@@ -891,7 +922,7 @@ public class FindCrypt extends GhidraScript {
 			
 		}
 
-		System.out.println("Loaded " + EntryManager._consts.size() + " database entries.");
+		System.out.println("Loaded " + EntryManager._consts.size() + " signatures.");
 		
 		var _ctr = 0;
 		var _formatted = "";
@@ -904,13 +935,15 @@ public class FindCrypt extends GhidraScript {
 				System.out.println("Found " + alg._name + ": 0x" + String.format("%08X", _found.getOffset()));
 				// I added a counter, in case we have duplicate patterns.
 				
-				_formatted += String.format("%s -> 0x%08X\n", alg._name + "(" + _ctr + ")", _found.getOffset());
+				_formatted += String.format("%s -> 0x%08X\n", alg._name, _found.getOffset());
+				_ctr++;
 			}
 		}
 		
 		// Only show results if something has been found.
 		if (_formatted.length() > 1)
-			MultiLineMessageDialog.showMessageDialog(null, "FindCrypt Ghidra (d3vil401)", "Results found in the application, refer to XREF to find usage locations.", _formatted, 1);
+			MultiLineMessageDialog.showMessageDialog(null, "FindCrypt Ghidra", "A total of " + _ctr + " signatures have been found.", _formatted, 1);
+		
 		
 		_formatted = "";
 	}
