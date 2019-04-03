@@ -1,0 +1,24 @@
+With the latest update, I introduced the update system.
+With this new version instead, I fixed a couple of bugs and added the changelog you're reading right now.
+
+- Added changelog to script update.
+- Fixed a bug duplicating scan results (database was being loaded twice)
+- The script now enforces the current version (you only need to update FindCrypt.java, 
+	no need to replace the "findcrypt_ghidra" directory)
+
+The script is in quite an ugly state (spaghetti code style by an italian coder ;) )
+that is because I first wanted to create a PoC and see if people was interested.
+
+Now, since we've a few active users, let me tell you what I'm going to do:
+
+- I'm going to properly test the script on a Linux Ghidra instance.
+- I'm going to redesign most of the code, to be sure it's not so ugly and improve
+	its stability.
+- I'll try to implement the compression for the database signatures.
+
+This is all for now, I'm glad you guys like this plugin as I do.
+I'm open to suggestions, you can write them in the Issues section of the repository.
+
+Happy hacking.
+
+- d3vil401
