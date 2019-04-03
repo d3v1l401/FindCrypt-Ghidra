@@ -60,7 +60,7 @@ with the best result possible, if you wish to turn it off until next manual acti
 While the database is by design modular and can be updated automatically, the script can not; but the script will check the current version and prompt
 the user to check this repository latest version for download.
 
-Proceed to download the latest version and replace the folder in the user's documents.
+Proceed to download the latest version and replace it in Ghidra's script directory.
 
 Also this system is turned on by default, if you wish to disable it, follow above mentioned steps on '__FORCE_NO_SCRIPTUPDATE' (line 708).
 
