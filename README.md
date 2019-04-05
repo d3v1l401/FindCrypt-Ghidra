@@ -2,9 +2,9 @@
 
 While for years we used IDA Pro and its incredible plugins developed by its huge community, Ghidra came out recently (at the time of writing) showing a lot of potential and an incredible modular design for customization both in Python or Java.
 
-As most of you know, FindCrypt, a plugin made by nonetheless than Ilfak himself for IDA, is essential for quickly find references to Cryptography functions in the target and extremely useful in the field of Reverse Engineering.
+As most of you know, FindCrypt, a plugin made by nonetheless than Ilfak Guilfanov himself for IDA, is essential for quickly find references to Cryptography functions in the target and extremely useful in the field of Reverse Engineering.
 
-I'm trying to move to Ghidra and the very first thing I noticed is how important is the plugin to me, so I took the responsibility to migrate it, in Java, without sacrificing any signature.
+I'm trying to move to Ghidra and the very first thing I noticed is how important is the plugin to me, so I took the responsibility to migrate it, in Java, without sacrificing any signature and try to improve it as well.
 
 ![Demo](https://github.com/d3v1l401/FindCrypt-Ghidra/blob/master/Misc/demo.gif)
 
@@ -12,10 +12,19 @@ I'm trying to move to Ghidra and the very first thing I noticed is how important
 
 ## Installation
 
+#### Windows
+
 1. Find your Ghidra installation directory (e.g. "E:\Reversing Softwares\ghidra_9.0")
 2. Move "FindCrypt.java" into "Ghidra\Features\BytePatterns\ghidra_scripts"
 3. Move "findcrypt_ghidra" (database directory) into "C:\Users\your user\"
-4. Be sure "database.d3v" is inside the "findcrypt_ghidra" directory and is accessible by Ghidra (should be by default).
+4. Be sure Ghidra can access the "findcrypt_ghidra" directory both for reading and writing.
+
+#### Linux
+
+1. Find your Ghidra installation directory (e.g. ~/ghidra)
+2. Move "FindCrypt.java" into "~/ghidra/Features/BytePatterns/ghidra_scripts"
+3. Move "findcrypt_ghidra" (database directory) into ~/ (or $HOME)
+4. Be sure Ghidra can access the "~/findcrypt_ghidra" directory both for reading and writing.
 
 ## Usage
 
@@ -27,13 +36,12 @@ by double clicking or pressing "Run" will execute the script and a result screen
 ### Database
 
 The database is a binary file I serialized myself, it's very easy to understand and very basic but functional for its goal.
-The database contains all of the **79** algorithms constants implemented by Ilfak, no sacrifices have been made while migrating them, while also adding 
-more and more by the contributors.
+The database contains all of the **79** algorithms constants implemented by Ilfak, no sacrifices have been made while migrating them, while also adding more and more by the contributors.
 
 These are the supported algorithms, currently stored in the database being used.
 
 * **Stream ciphers** 
-	* Chacha
+    * Chacha
 * **Block ciphers**
     * Blowfish, Camellia, DES, TripleDES, RC2, SHARK, Cast, Square, WAKE, Skipjack 
 * **Hash funcions** 
@@ -47,22 +55,22 @@ To include more constants of your choice, simply refer to the "FCExporter" proje
 
 #### Database Updating
 
-The database plugin is now using an internal auto update system synchronized with the latest database version in this repository.
-The centralized repository synchronization is by default turned on, this is to ensure the user to always have the latest version possible
-with the best result possible, if you wish to turn it off until next manual activation:
+The script is now using an internal auto update system synchronized with the latest database version in this repository.
+The centralized repository synchronization is by default turned on, this is to ensure the user always has the latest version possible
+and therefore obtain best results from the script, if you wish to turn it off:
 
 1. Open the "FindCrypt.java" file and find the '__FORCE_NO_UPDATE' variable (line 707).
 2. Replace "false" with "true".
-3. Save and replace it (or update it without replacement).
 
 #### Script Updating
 
-While the database is by design modular and can be updated automatically, the script can not; but the script will check the current version and prompt
-the user to check this repository latest version for download.
+While the database is by design modular and can be updated automatically, the script can not; but the script will check the current version and prompt the user to check this repository latest version for download, with the list of changes from the new version.
 
-Proceed to download the latest version and replace it in Ghidra's script directory.
+The script update message is prompt only once per session.
 
-Also this system is turned on by default, if you wish to disable it, follow above mentioned steps on '__FORCE_NO_SCRIPTUPDATE' (line 708).
+Proceed to download the latest version of "FindCrypt.java" and replace it in Ghidra's script directory.
+
+Also this feature is turned on by default, if you wish to disable it, follow above mentioned steps on '__FORCE_NO_SCRIPTUPDATE' (line 708).
 
 ![Example update](https://github.com/d3v1l401/FindCrypt-Ghidra/blob/master/Misc/updDemo.png)
 
@@ -73,9 +81,8 @@ Ilfak Guilfanov - @ilfak
 
 NSA (Ghidra) - https://ghidra-sre.org/
 
-
 ![Ghidra Logo](https://media.defense.gov/2019/Mar/05/2002096238/400/400/0/190503-D-IM742-3002.PNG)
 
 ### License
 
-GNU GPLv3
+GNU GPLv3 - Refer to "LICENSE"
