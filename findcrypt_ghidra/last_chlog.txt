@@ -2,7 +2,7 @@ Hello FC-G people!
 
 WARNING: Mandatory script update (database structure change).
 
-With this update I'm bringing the compression for the database (ZLib) which is a necessary function
+With this update I'm bringing the compression for the database (GZip) which is a necessary function
 for the next updates.
 First of all, I tested the new script (and the old one) on a Linux Ghidra instance and it's working
 wonderfully with no problems, can't say about MacOSX since I do not own any.
