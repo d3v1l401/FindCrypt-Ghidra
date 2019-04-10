@@ -59,7 +59,7 @@ The script is now using an internal auto update system synchronized with the lat
 The centralized repository synchronization is by default turned on, this is to ensure the user always has the latest version possible
 and therefore obtain best results from the script, if you wish to turn it off:
 
-1. Open the "FindCrypt.java" file and find the '__FORCE_NO_UPDATE' variable (line 707).
+1. Open the "FindCrypt.java" file and find the '__FORCE_NO_DBUPDATE' variable (line 705).
 2. Replace "false" with "true".
 
 #### Script Updating
@@ -70,14 +70,14 @@ The script update message is prompt only once per session.
 
 Proceed to download the latest version of "FindCrypt.java" and replace it in Ghidra's script directory.
 
-Also this feature is turned on by default, if you wish to disable it, follow above mentioned steps on '__FORCE_NO_SCRIPTUPDATE' (line 708).
+Also this feature is turned on by default, if you wish to disable it, follow above mentioned steps on '__FORCE_NO_SCRIPTUPDATE' (line 707).
 
 ![Example update](https://github.com/d3v1l401/FindCrypt-Ghidra/blob/master/Misc/updDemo.png)
 
 # Credits
 d3vil401 - d3vil401@protonmail.com, d3vil401#7685 (Discord), https://d3vsite.org/
 
-Ilfak Guilfanov - @ilfak
+Ilfak Guilfanov - https://twitter.com/ilfak
 
 NSA (Ghidra) - https://ghidra-sre.org/
 
@@ -86,3 +86,5 @@ NSA (Ghidra) - https://ghidra-sre.org/
 ### License
 
 GNU GPLv3 - Refer to "LICENSE"
+
+Using Crypto++ - Refer to Licenses\Crypto++.txt

@@ -1,23 +1,20 @@
-With the latest update, I introduced the update system.
-With this new version instead, I fixed a couple of bugs and added the changelog you're reading right now.
+Hello FC-G people!
 
-- Added changelog to script update.
-- Fixed a bug duplicating scan results (database was being loaded twice)
-- The script now enforces the current version (you only need to update FindCrypt.java, 
-	no need to replace the "findcrypt_ghidra" directory)
+WARNING: Mandatory script update (database structure change).
 
-The script is in quite an ugly state (spaghetti code style by an italian coder ;) )
-that is because I first wanted to create a PoC and see if people was interested.
+With this update I'm bringing the compression for the database (ZLib) which is a necessary function
+for the next updates.
+First of all, I tested the new script (and the old one) on a Linux Ghidra instance and it's working
+wonderfully with no problems, can't say about MacOSX since I do not own any.
+As for the next EXCITING updates:
 
-Now, since we've a few active users, let me tell you what I'm going to do:
+- I'll introduce the Ellpictic Curves constants, as many as possible (these are huge).
+- A surprise, if I manage to do it you'll love it.
 
-- I'm going to properly test the script on a Linux Ghidra instance.
-- I'm going to redesign most of the code, to be sure it's not so ugly and improve
-	its stability.
-- I'll try to implement the compression for the database signatures.
+So far is already a big improvement from the original FindCrypt, really grad this is going well and 
+you all liked this plugin so far.
 
-This is all for now, I'm glad you guys like this plugin as I do.
-I'm open to suggestions, you can write them in the Issues section of the repository.
+See ya next time with more interesting stuff.
 
 Happy hacking.
 

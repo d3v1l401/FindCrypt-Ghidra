@@ -677,6 +677,8 @@
 
 import java.io.BufferedInputStream;
 import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -693,213 +695,242 @@ import java.nio.channels.ReadableByteChannel;
 import java.security.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.zip.GZIPInputStream;
 
 import docking.widgets.dialogs.MultiLineMessageDialog;
 import ghidra.app.script.GhidraScript;
 import ghidra.program.model.address.Address;
 import ghidra.util.Msg;
 
-
 public class FindCrypt extends GhidraScript {
-	private static final boolean IS_DEBUG = false;
-	private static final String __DEFAULT_LOAD_BASEDIR = System.getProperty("user.home") + File.separator + "findcrypt_ghidra" + File.separator;
-	private static final String __DEFAULT_LOAD_DIR =  __DEFAULT_LOAD_BASEDIR + "database.d3v";
-	
-	private static final boolean __FORCE_NO_UPDATE = false;
-	private static final boolean __FORCE_NO_SCRIPTUPDATE = false;
-	
-	// Used to enforce script update, allowing user not to replace "script_update.txt" manually if he replaced old script with newest one.
-	private static final String __THIS_VERSION = "2";
-	
-	/////////////////////////////////////////////////////////
-	//													   //
-	// 			CONSTANTS 								   //
-	//													   //
-	/////////////////////////////////////////////////////////
-	
-	public static class EntryInfo {
-		private byte[] _buffer;
-		private String _name;
+	public static class InternalParams {
+		// Disable automatic database update.
+		public static final boolean __FORCE_NO_DBUPDATE = false;
+		// Disable automatic script version check.
+		public static final boolean __FORCE_NO_SCRIPTUPDATE = false;
 		
-		public EntryInfo(byte[] _buff, String _name) {
-			this._buffer = _buff;
-			this._name = _name;
+		// Current script version, used for enforcing; modifications not recommended unless you know what you're doing.
+		public static final String __SCRIPT_VERSION = "3";
+	}
+
+	public static class GuiHandler {
+		
+		public static void ShowMessage(String _title, String _message, String _details, int _icon) {
+			MultiLineMessageDialog.showMessageDialog(null, _title, _message, _details, _icon);
 		}
 	}
-	
+
 	public static class UpdateManager {
-		private static final String __DEFAULT_UPDATE_URLBASE = "https://raw.githubusercontent.com/d3v1l401/FindCrypt-Ghidra/master/findcrypt_ghidra";
+		private String _BASE = "";
+		private String _LOCAL = "";
 		
-		public static String GetChangelog() {
+		public String GetChangelog() {
 			URL url;
 			try {
-				url = new URL(__DEFAULT_UPDATE_URLBASE + "/last_chlog.txt");
+				url = new URL(this._BASE + "/last_chlog.txt");
 				URLConnection urlConnection = url.openConnection();
 				InputStream in = new BufferedInputStream(urlConnection.getInputStream());
 
 				var _lastchLog = new String(in.readAllBytes(), "UTF-8");
 				
 				return _lastchLog;
-				
-				
 			} catch (Exception e) { 
 				return "Error recovering last changelog:\n" + e.getMessage();
 			}
-			
 		}
 		
-		public static boolean CheckForScriptUpdate() throws IOException {
-			
-			// First, enforce current version.
-			new File(__DEFAULT_LOAD_BASEDIR + "script_update.txt").delete();
-			var enf = new FileWriter(__DEFAULT_LOAD_BASEDIR + "script_update.txt");
-			enf.write(__THIS_VERSION);
-			enf.flush();
-			enf.close();
-			
+		public boolean CheckScriptVersion() {
 			URL url;
 			try {
-				url = new URL(__DEFAULT_UPDATE_URLBASE + "/script_update.txt");
+				url = new URL(this._BASE + "/script_update.txt");
 				URLConnection urlConnection = url.openConnection();
 				InputStream in = new BufferedInputStream(urlConnection.getInputStream());
 
 				var _last = Integer.parseInt(new String(in.readAllBytes(), "UTF-8"));
-				var _local = Integer.parseInt(new String(new FileInputStream(__DEFAULT_LOAD_BASEDIR + "script_update.txt").readAllBytes(), "UTF-8"));
+				var _local = Integer.parseInt(InternalParams.__SCRIPT_VERSION);
 				
 				if (_last > _local) {
 					MultiLineMessageDialog.showMessageDialog(null, "FindCrypt Ghidra",
-							"New script update is available, please proceed to the repository URL to download the latest version.", GetChangelog() + "\n\nhttps://github.com/d3v1l401/FindCrypt-Ghidra", 1);
+							"A new version of FindCrypt-Ghidra is available:", this.GetChangelog() + "\n\n\thttps://github.com/d3v1l401/FindCrypt-Ghidra", 1);
 				}
 				
-				
+				return true;
 			} catch (Exception e) {
-				return false;
+				// Don't bother, internet may not be available.
 			}
-			
-			return true;
+			return false;
 		}
 		
-		public static boolean CheckForUpdates() {
-			
+		public boolean CheckDatabaseVersion() {
 			URL url;
 			try {
-				url = new URL(__DEFAULT_UPDATE_URLBASE + "/last_update.txt");
+				url = new URL(this._BASE + "/last_update.txt");
 				URLConnection urlConnection = url.openConnection();
 				InputStream in = new BufferedInputStream(urlConnection.getInputStream());
 
 				var _last = Integer.parseInt(new String(in.readAllBytes(), "UTF-8"));
-				var _local = Integer.parseInt(new String(new FileInputStream(__DEFAULT_LOAD_BASEDIR + "last_update.txt").readAllBytes(), "UTF-8"));
+				var _local = Integer.parseInt(new String(new FileInputStream(this._LOCAL + "last_update.txt").readAllBytes(), "UTF-8"));
 				
 				if (_last > _local) {
-					url = new URL(__DEFAULT_UPDATE_URLBASE + "/database.d3v");
+					System.out.println("A new version of the database is being downloaded (" + _local + " -> " + _last + ").");
+					
+					url = new URL(this._BASE + "/database.d3v");
 					ReadableByteChannel readableByteChannel = Channels.newChannel(url.openStream());
 
-					new File(__DEFAULT_LOAD_DIR).delete();
-					FileOutputStream fileOutputStream = new FileOutputStream(__DEFAULT_LOAD_DIR);
+					new File(this._LOCAL + "database.d3v").delete();
+					FileOutputStream fileOutputStream = new FileOutputStream(this._LOCAL + "database.d3v");
 					FileChannel fileChannel = fileOutputStream.getChannel();
 					fileOutputStream.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
 					fileOutputStream.close();
 					
-					// Replace cur_version.txt
-					new File(__DEFAULT_LOAD_BASEDIR + "/last_update.txt").delete();
-					var _handle = new FileWriter(__DEFAULT_LOAD_BASEDIR + "/last_update.txt");
+					new File(this._LOCAL + "last_update.txt").delete();
+					var _handle = new FileWriter(this._LOCAL + "last_update.txt");
 					_handle.write(String.valueOf(_last));
 					_handle.close();
 				}
 				
-				
+				return true;
 			} catch (Exception e) {
-				return false;
+				// Don't bother, internet may not be available.
 			}
-			
-			return true;
+			return false;
 		}
+		
+		public UpdateManager(String _baseUrl, String _basePath) {
+			this._BASE = _baseUrl;
+			this._LOCAL = _basePath;
+		}
+		
+		
 	}
 
-	public static class EntryManager {
-		
-		private static boolean   _loaded = false;
-		
-		private static final int _Magic = 0xD3010401;
-		private static short     _totalEntries = 0;
-		
-		private static ArrayList<EntryInfo> _consts = new ArrayList<>();
-		
+	public static class DatabaseManager {
+		// Structure of database file, for reference.
 		/********************************************************
 		 | MAGIC (4)    | Total Entries (2)          	        |
 		 | NameSize (4) | Name (x) | isCompressed(1) | BSize(4) |
 		 | Buffer (x)   | ...                                   |
 		 ********************************************************/
 		
-		public static boolean Initialize() throws IOException {
+		// Structure of the database entry.
+		public class EntryInfo {
+			private byte[] _buffer;
+			private String _name;
 			
-			if (!_loaded) {
-				
-				if (IS_DEBUG)
-					System.out.println("Supposedly loading database from " + __DEFAULT_LOAD_DIR);
-				
-				// I'd avoid printing an error, not everybody might be connected over internet.
-				// It will just retry every time Ghidra is used, until success.
-				if (!__FORCE_NO_UPDATE)
-					UpdateManager.CheckForUpdates();
-				
-				if (!__FORCE_NO_SCRIPTUPDATE)
-					UpdateManager.CheckForScriptUpdate();
-
-				DataInputStream _stream = new DataInputStream(new FileInputStream(__DEFAULT_LOAD_DIR));
-
-				var _fmagic = _stream.readInt();
-				if (_fmagic != _Magic) {
-					_stream.close();
-					return false;
-				}
-				
-				_totalEntries = _stream.readShort();
-				
-				for (var i = 0; i < _totalEntries; i++) {
-					// Beginning importing.
-					var _nameSize = _stream.readInt();
-					var _name = new byte[_nameSize];
-					_stream.read(_name);
-					
-					var _isCompressed = _stream.readByte();
-					if (_isCompressed == 0x01) {
-						// Not implemented, yet.
-					}
-					
-					var _buffSize = _stream.readInt();
-					var _buff = new byte[_buffSize];
-					_stream.read(_buff);
-					
-					if (IS_DEBUG) {
-						System.out.println("Added " + new String(_name, "UTF-8"));
-					}
-					
-					_consts.add(new EntryInfo(_buff, new String(_name, "UTF-8")));
-				}
-				
-				_stream.close();
-				_loaded = true;
-				return true;
-			} 
-			
-			return true;
+			public EntryInfo(byte[] _buff, String _name) {
+				this._buffer = _buff;
+				this._name = _name;
+			}
 		}
 		
+		private boolean   		 	_loaded = false;
+		private static final int 	_EXPECTED_MAGIC = 0xD3010401;
+		private short     		 	_totalEntries 	 = 0;
+		
+		private ArrayList<EntryInfo> _consts = new ArrayList<>();
+		
+		public int DbSize() {
+			return this._totalEntries;
+		}
+		
+		public DatabaseManager(String _path) {
+			
+			if (!this._loaded) {
+				
+				try {
+					DataInputStream _stream = new DataInputStream(new FileInputStream(_path));
+					var _curMagic = _stream.readInt();
+					
+					if (_curMagic != _EXPECTED_MAGIC)
+						throw new Exception("Specified database file has a different magic from the expected one.");
+					
+					this._totalEntries = _stream.readShort();
+					if (this._totalEntries == 0) {
+						GuiHandler.ShowMessage("FindCrypt - Warning", "Something unusual happened while loading the database.",
+								"The database contains no entries, while this is not error, the script will not scan anything", 2);
+						return; // No need to proceed at all.
+					}
+					
+					for (var i = 0; i < this._totalEntries; i++) {
+						var _nameSize = _stream.readInt();
+						if (_nameSize == 0)
+							throw new Exception("An entry has 0 length name.");
+						var _name = new byte[_nameSize];
+						_stream.read(_name);
+						
+						var _isCompressed = _stream.readByte();
+						
+						var _buffSize = _stream.readInt();
+						if (_buffSize == 0) 
+							throw new Exception("An entry has no buffer (" + _name + ")");
+						var _buff = new byte[_buffSize];
+						_stream.read(_buff);
+						
+						if (_isCompressed == 0x01) {
+							// https://stackoverflow.com/questions/12531579/uncompress-a-gzip-string-in-java
+							ByteArrayInputStream bytein = new ByteArrayInputStream(_buff);
+							GZIPInputStream gzin = new GZIPInputStream(bytein);
+							ByteArrayOutputStream byteout = new ByteArrayOutputStream();
+
+							int res = 0;
+							byte buf[] = new byte[1024];
+							while (res >= 0) {
+							    res = gzin.read(buf, 0, buf.length);
+							    if (res > 0) {
+							        byteout.write(buf, 0, res);
+							    }
+							}
+							byte uncompressed[] = byteout.toByteArray();
+							
+							this._consts.add(new EntryInfo(uncompressed, new String(_name, "UTF-8")));
+						} else 
+							this._consts.add(new EntryInfo(_buff, new String(_name, "UTF-8")));
+					}
+					
+					_stream.close();
+					this._loaded = true;
+					
+				} catch (Exception e) {
+					GuiHandler.ShowMessage("FindCrypt - Error" , "An error happened while loading the database.", e.getMessage(), 0);
+				}
+				
+			}
+			
+		}
 	}
 
-	/////////////////////////////////////////////////////////
-	//													   //
-	// 			END CONSTANTS 							   //
-	//													   //
-	/////////////////////////////////////////////////////////
-	
+	public static class WorksetManager {
+		private static final String __FCUPD_BASEURL = "https://raw.githubusercontent.com/d3v1l401/FindCrypt-Ghidra/master/findcrypt_ghidra";
+		
+		private static final String __FCDATA_DIR = System.getProperty("user.home") + File.separator + "findcrypt_ghidra" + File.separator;
+		
+		private static DatabaseManager _dbHandler;
+		private static UpdateManager   _updHandler;
+		
+		public static boolean Initialize() {
+			_dbHandler = new DatabaseManager(__FCDATA_DIR + "database.d3v");
+			_updHandler = new UpdateManager(__FCUPD_BASEURL, __FCDATA_DIR);
+			
+			if (_dbHandler != null && _updHandler != null) 
+				return true;
+			
+			return false;
+		}
+		
+		public static int GetDatabaseSize() {
+			return _dbHandler.DbSize();
+		}
+		
+		public static ArrayList<DatabaseManager.EntryInfo> GetDB() {
+			return _dbHandler._consts;
+		}
+	}
 	
 	@Override
 	protected void run() throws Exception {
 		
 		System.out.println("FindCrypt - Ghidra Edition by d3vil401 (https://d3vsite.org)\n" +
-						   "Original idea & project by Ilfak Guilfanov (http://hexblog.com)" +
+						   "Original idea by Ilfak Guilfanov (http://hexblog.com)" +
 						   "\n");
 		
 		if (isRunningHeadless()) {
@@ -911,29 +942,19 @@ public class FindCrypt extends GhidraScript {
 			return;
 		}
 		
-		if (!EntryManager.Initialize())
-			Msg.showError(this, null, "Error - Initialization", "FindCrypt (Ghidra) failed to load the database, please check or reinstall it!");
-		
-		if (IS_DEBUG) {
+		WorksetManager.Initialize();
 
-			System.out.println("Scanning 0x" + String.format("%08X", currentProgram.getMinAddress().getOffset()) + " -> 0x" 
-					+ String.format("%08X", currentProgram.getMaxAddress().getOffset()) 
-					+ " (0x" + String.format("%08X", currentProgram.getMaxAddress().subtract(currentProgram.getMinAddress())) + ") bytes" );
-			
-		}
-
-		System.out.println("Loaded " + EntryManager._consts.size() + " signatures.");
+		System.out.println("Loaded " + WorksetManager.GetDatabaseSize() + " signatures.");
 		
 		var _ctr = 0;
 		var _formatted = "";
 		
-		for (var alg: EntryManager._consts) {
+		for (var alg: WorksetManager.GetDB()) {
 			monitor.checkCanceled();
 			
 			var _found = currentProgram.getMemory().findBytes(currentProgram.getMinAddress(), alg._buffer, null, true, monitor);
 			if (_found != null) {
 				System.out.println("Found " + alg._name + ": 0x" + String.format("%08X", _found.getOffset()));
-				// I added a counter, in case we have duplicate patterns.
 				
 				_formatted += String.format("%s -> 0x%08X\n", alg._name, _found.getOffset());
 				_ctr++;
@@ -941,9 +962,8 @@ public class FindCrypt extends GhidraScript {
 		}
 		
 		// Only show results if something has been found.
-		if (_formatted.length() > 1)
-			MultiLineMessageDialog.showMessageDialog(null, "FindCrypt Ghidra", "A total of " + _ctr + " signatures have been found.", _formatted, 1);
-		
+		if (_ctr > 1)
+			GuiHandler.ShowMessage("FindCrypt Ghidra", "A total of " + _ctr + " signatures have been found.", _formatted, 1);
 		
 		_formatted = "";
 	}
