@@ -710,7 +710,7 @@ public class FindCrypt extends GhidraScript {
 		public static final boolean __FORCE_NO_SCRIPTUPDATE = false;
 		
 		// Current script version, used for enforcing; modifications not recommended unless you know what you're doing.
-		public static final String __SCRIPT_VERSION = "3";
+		public static final String __SCRIPT_VERSION = "4";
 	}
 
 	public static class GuiHandler {
@@ -882,6 +882,12 @@ public class FindCrypt extends GhidraScript {
 							}
 							byte uncompressed[] = byteout.toByteArray();
 							
+							for (var x: uncompressed) {
+								System.out.println("------ DEBUG OUTPUT");
+								System.out.printf("%02X ", x);
+								System.out.println("DEBUG OUTPUT ------");
+							}
+							
 							this._consts.add(new EntryInfo(uncompressed, new String(_name, "UTF-8")));
 						} else 
 							this._consts.add(new EntryInfo(_buff, new String(_name, "UTF-8")));
@@ -911,8 +917,11 @@ public class FindCrypt extends GhidraScript {
 			_dbHandler = new DatabaseManager(__FCDATA_DIR + "database.d3v");
 			_updHandler = new UpdateManager(__FCUPD_BASEURL, __FCDATA_DIR);
 			
-			if (_dbHandler != null && _updHandler != null) 
+			if (_dbHandler != null && _updHandler != null) {
+				_updHandler.CheckDatabaseVersion();
+				_updHandler.CheckScriptVersion();
 				return true;
+			}
 			
 			return false;
 		}
@@ -955,6 +964,7 @@ public class FindCrypt extends GhidraScript {
 			var _found = currentProgram.getMemory().findBytes(currentProgram.getMinAddress(), alg._buffer, null, true, monitor);
 			if (_found != null) {
 				System.out.println("Found " + alg._name + ": 0x" + String.format("%08X", _found.getOffset()));
+				// I added a counter, in case we have duplicate patterns.
 				
 				_formatted += String.format("%s -> 0x%08X\n", alg._name, _found.getOffset());
 				_ctr++;
@@ -964,6 +974,7 @@ public class FindCrypt extends GhidraScript {
 		// Only show results if something has been found.
 		if (_ctr > 1)
 			GuiHandler.ShowMessage("FindCrypt Ghidra", "A total of " + _ctr + " signatures have been found.", _formatted, 1);
+		
 		
 		_formatted = "";
 	}
