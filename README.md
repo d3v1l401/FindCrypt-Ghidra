@@ -38,14 +38,19 @@ by double clicking or pressing "Run" will execute the script and a result screen
 The database is a binary file I serialized myself, it's very easy to understand and very basic but functional for its goal.
 The database contains all of the **79** algorithms constants implemented by Ilfak, no sacrifices have been made while migrating them, while also adding more and more by the contributors.
 
-These are the supported algorithms, currently stored in the database being used.
 
+There's a total of **122 detectable constants** in the database, related to:
+
+* **Raw Primitives**
+	* Keccak (SHA-3)
+* **Elliptic Curves**
+	* Donna32 (EC25519), Donna64 (EC25519)
 * **Stream ciphers** 
-    * Chacha
+    * Chacha, Salsa, Sosemanuk
 * **Block ciphers**
-    * Blowfish, Camellia, DES, TripleDES, RC2, SHARK, Cast, Square, WAKE, Skipjack 
+    * Blowfish, Camellia, DES, TripleDES, RC2, SHARK, Cast, Square, WAKE, Skipjack, HIGHT, Kalyna, LEA, SEED, SCHACAL2, SIMON-64, SIMON-128, TEA/TEAN/XTEA/XXTEA
 * **Hash funcions** 
-    * Whirlpool, MD2, MD4, MD5, SHA-1, SHA-256, SHA-384, SHA512, Tiger, RIPEMD160, HAVAL, BLAKE2
+    * Whirlpool, MD2, MD4, MD5, SHA-1, SHA-256, SHA-384, SHA-512, Tiger, RIPEMD160, HAVAL, BLAKE2
 * **AES Family**
     * AES, RC5/RC6, MARS, Twofish, CAST-256, GOST, SAFER 
 * **Compression** 

@@ -882,12 +882,6 @@ public class FindCrypt extends GhidraScript {
 							}
 							byte uncompressed[] = byteout.toByteArray();
 							
-							for (var x: uncompressed) {
-								System.out.println("------ DEBUG OUTPUT");
-								System.out.printf("%02X ", x);
-								System.out.println("DEBUG OUTPUT ------");
-							}
-							
 							this._consts.add(new EntryInfo(uncompressed, new String(_name, "UTF-8")));
 						} else 
 							this._consts.add(new EntryInfo(_buff, new String(_name, "UTF-8")));

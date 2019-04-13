@@ -144,7 +144,7 @@ int main(int argc, char* argv[]) {
 		// NON SPARSE SERIALIZE   //
 		////////////////////////////
 		cout << " |---- NON-SPARSE CONSTANTS\n |" << std::endl;
-		for (auto i = 0; i < 80; i++) {
+		for (auto i = 0; i < 118; i++) {
 			uint8_t shouldCompress = sparse_consts[i].size > 20 ? 0x01 : 0x00;
 
 			if (!db->AddEntry((unsigned char*)non_sparse_consts[i].array, non_sparse_consts[i].size, non_sparse_consts[i].name, shouldCompress))
