@@ -65,7 +65,7 @@ public:
 			_b64d.resize(_size);
 			memcpy(&_b64d[0], _buff, _size);
 
-			auto _nameLength = _name.length();
+			int _nameLength = _name.length();
 			SWAP(_nameLength);
 			WRITE(_nameLength, sizeof(int));
 			WRITE(_name[0], _name.length());
