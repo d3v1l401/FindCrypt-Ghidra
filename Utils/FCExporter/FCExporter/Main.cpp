@@ -94,7 +94,7 @@ public:
 				_outBuff.clear();
 			} else {
 
-				auto _buffLength = _b64d.length();
+				int _buffLength = _b64d.length();
 				SWAP(_buffLength);
 				WRITE(_buffLength, sizeof(int));
 				WRITE(_b64d[0], _b64d.length());
