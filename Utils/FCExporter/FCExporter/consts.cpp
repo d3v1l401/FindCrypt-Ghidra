@@ -10669,10 +10669,12 @@ const word32 Sosemanuk_MulTabl_B64[] = {
 // TEA
 
 const word32 TEA_DELTA[] = { 0x9e3779b9 };
+const word32 TEA_ALTERNATIVE_DELTA[] = { 0x61c88647 };
 
 const array_info_t non_sparse_consts[] =
 {
   { ARR(TEA_DELTA),						  "TEA"								   },
+  { ARR(TEA_ALTERNATIVE_DELTA),			  "TEA"								   },
 
   { ARR(Sosemanuk_MulTables_B32),		  "Sosemanuk"						   },
   { ARR(Sosemanuk_MulTables_B86),		  "Sosemanuk"						   },
