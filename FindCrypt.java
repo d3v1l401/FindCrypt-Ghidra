@@ -966,7 +966,7 @@ public class FindCrypt extends GhidraScript {
 		}
 		
 		// Only show results if something has been found.
-		if (_ctr > 1)
+		if (_ctr >= 1)
 			GuiHandler.ShowMessage("FindCrypt Ghidra", "A total of " + _ctr + " signatures have been found.", _formatted, 1);
 		
 		
