@@ -58,7 +58,7 @@ public:
 		}
 	}
 
-	bool AddEntry(unsigned char* _buff, size_t _size, std::string _name, uint8_t toCompress = 0) {
+	bool AddEntry(unsigned char* _buff, size_t _size, size_t _el_size, std::string _name, uint8_t toCompress = 0) {
 		if (_buff != nullptr && _size > 0) {
 
 			std::string _b64d;
@@ -68,10 +68,10 @@ public:
 			int _nameLength = _name.length();
 			SWAP(_nameLength);
 			WRITE(_nameLength, sizeof(int));
-			WRITE(_name[0], _name.length());
-
+			WRITE(_name[0], _name.length());			
 			WRITE(toCompress, sizeof(uint8_t));
-
+			SWAP(_el_size);
+			WRITE(_el_size, sizeof(int));
 			if (toCompress) {
 
 				if (_b64d.data() == nullptr || _size <= 0)
@@ -133,7 +133,7 @@ int main(int argc, char* argv[]) {
 		for (auto i = 0; i < 5; i++) {
 			uint8_t shouldCompress = sparse_consts[i].size > 20 ? 0x01 : 0x00;
 
-			if (!db->AddEntry((unsigned char*)sparse_consts[i].array, sparse_consts[i].size, sparse_consts[i].name, shouldCompress))
+			if (!db->AddEntry((unsigned char*)sparse_consts[i].array, sparse_consts[i].size, sparse_consts[i].size_elem, sparse_consts[i].name, shouldCompress))
 				cout << " |--[" << i << "] \"" << sparse_consts[i].name << "\" failed to add due to corrupted cast." << std::endl;
 			else
 				cout << " |--[" << i << "] Added \"" << sparse_consts[i].name << "\" (" << sparse_consts[i].size << ")" << std::endl;
@@ -147,7 +147,7 @@ int main(int argc, char* argv[]) {
 		for (auto i = 0; i < 119; i++) {
 			uint8_t shouldCompress = sparse_consts[i].size > 20 ? 0x01 : 0x00;
 
-			if (!db->AddEntry((unsigned char*)non_sparse_consts[i].array, non_sparse_consts[i].size, non_sparse_consts[i].name, shouldCompress))
+			if (!db->AddEntry((unsigned char*)non_sparse_consts[i].array, non_sparse_consts[i].size, non_sparse_consts[i].size_elem, non_sparse_consts[i].name, shouldCompress))
 				cout << " |--[" << i << "] \"" << non_sparse_consts[i].name << "\" failed to add due to corrupted cast." << std::endl;
 			else
 				cout << " |--[" << i << "] Added \"" << non_sparse_consts[i].name << "\" (" << non_sparse_consts[i].size << ")" << std::endl;
