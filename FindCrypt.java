@@ -708,6 +708,7 @@ import ghidra.program.model.listing.Function;
 import ghidra.util.Msg;
 
 public class FindCrypt extends GhidraScript {
+	private static final int SUB_CRYPT_LOOP_COUNTER = 20;
 	public static class InternalParams {
 		// Disable automatic database update.
 		public static final boolean __FORCE_NO_DBUPDATE = false;
@@ -989,21 +990,26 @@ public class FindCrypt extends GhidraScript {
 				var function = currentProgram.getFunctionManager().getFunctionContaining(_found);
 				foundEntries.add(new FoundCryptoEntry(alg._name, _found, function));
 			} else {
-				if (alg._elementSize < 2) {
+				if (alg._elementSize < 4) {
 					continue; //skip too small constants - too many false positvies 
 				}
 				var size = alg._buffer.length;
 				byte[] part = new byte[alg._elementSize];
-
-				for(var i = 0; i < Math.min(size/alg._elementSize, 5); i++) {
+				var realHowManySubItes = size/alg._elementSize;				
+				var howManySubItemsToCheck = Math.min(realHowManySubItes, SUB_CRYPT_LOOP_COUNTER);				
+				var howManyFound = 0;
+				ArrayList<Address> _addresses = new ArrayList<>();
+				for(var i = 0; i < howManySubItemsToCheck; i++) {
 					var offset = i * alg._elementSize;
 					System.arraycopy(alg._buffer, offset, part, 0, alg._elementSize);		
 					var _foundPart = currentProgram.getMemory().findBytes(currentProgram.getMinAddress(), part, null, true, monitor);
 					if (_foundPart != null) {
-						var function = currentProgram.getFunctionManager().getFunctionContaining(_foundPart);
-						foundEntries.add(new FoundCryptoEntry(alg._name, _foundPart, function));
-						break;
+						_addresses.add(_foundPart);
+						howManyFound++;
 					}
+				}				
+				if (howManyFound / realHowManySubItes >= 0.8) {
+					foundEntries.add(new FoundCryptoEntry(alg._name, _addresses.get(0), null));
 				}
 			}
 		}
