@@ -708,7 +708,10 @@ import ghidra.program.model.listing.Function;
 import ghidra.util.Msg;
 
 public class FindCrypt extends GhidraScript {
-	private static final int SUB_CRYPT_LOOP_COUNTER = 20;
+	private static final int CRYPT_COUNTER = 20;
+	private static final double DETECT_THRESHOLD = 0.8;
+	private static final int SKIP_SMALLER_SUB_CONSTANTS = 4;
+
 	public static class InternalParams {
 		// Disable automatic database update.
 		public static final boolean __FORCE_NO_DBUPDATE = false;
@@ -990,13 +993,13 @@ public class FindCrypt extends GhidraScript {
 				var function = currentProgram.getFunctionManager().getFunctionContaining(_found);
 				foundEntries.add(new FoundCryptoEntry(alg._name, _found, function));
 			} else {
-				if (alg._elementSize < 4) {
+				if (alg._elementSize < SKIP_SMALLER_SUB_CONSTANTS) {
 					continue; //skip too small constants - too many false positvies 
 				}
 				var size = alg._buffer.length;
 				byte[] part = new byte[alg._elementSize];
-				var realHowManySubItes = size/alg._elementSize;				
-				var howManySubItemsToCheck = Math.min(realHowManySubItes, SUB_CRYPT_LOOP_COUNTER);				
+				var realHowManySubItems = size/alg._elementSize;				
+				var howManySubItemsToCheck = Math.min(realHowManySubItems, CRYPT_COUNTER);				
 				var howManyFound = 0;
 				ArrayList<Address> _addresses = new ArrayList<>();
 				for(var i = 0; i < howManySubItemsToCheck; i++) {
@@ -1008,25 +1011,24 @@ public class FindCrypt extends GhidraScript {
 						howManyFound++;
 					}
 				}				
-				if (howManyFound / realHowManySubItes >= 0.8) {
-					foundEntries.add(new FoundCryptoEntry(alg._name, _addresses.get(0), null));
+				if (howManyFound / realHowManySubItems >= DETECTION_THRESHOLD) {
+					var firstAddress = _addresses.get(0);
+					var function = currentProgram.getFunctionManager().getFunctionContaining(firstAddress);
+					foundEntries.add(new FoundCryptoEntry(alg._name, firstAddress, function));
 				}
 			}
 		}
 
 		var _ctr = 0;
 		for (var entry: foundEntries) {
-			println("Found " + entry.toString());				
-				
 			_formatted += entry.toString()+"\r\n";
 			_ctr++;
 		}
 		
 		// Only show results if something has been found.
-		if (_ctr >= 1) {
-			
+		if (_ctr >= 1) {		
 			if (headless) {
-				println("A total of " + _ctr + " sigantures have been found.");
+				println("A total of " + _ctr + " sigantures have been found.\r\n"+_formatted);				
 			} else {
 				GuiHandler.ShowMessage("FindCrypt Ghidra", "A total of " + _ctr + " signatures have been found.", _formatted, 1);
 			}
