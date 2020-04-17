@@ -687,22 +687,31 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.Math;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
 import java.security.Timestamp;
+import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.zip.GZIPInputStream;
 
 import docking.widgets.dialogs.MultiLineMessageDialog;
 import ghidra.app.script.GhidraScript;
 import ghidra.program.model.address.Address;
+import ghidra.program.model.listing.Function;
 import ghidra.util.Msg;
 
 public class FindCrypt extends GhidraScript {
+	private static final int 	CRYPT_COUNTER = 20;
+	private static final double DETECT_THRESHOLD = 0.8;
+	private static final int 	SKIP_SMALLER_SUB_CONSTANTS = 4;
+
 	public static class InternalParams {
 		// Disable automatic database update.
 		public static final boolean __FORCE_NO_DBUPDATE = false;
@@ -710,7 +719,7 @@ public class FindCrypt extends GhidraScript {
 		public static final boolean __FORCE_NO_SCRIPTUPDATE = false;
 		
 		// Current script version, used for enforcing; modifications not recommended unless you know what you're doing.
-		public static final String __SCRIPT_VERSION = "4";
+		public static final String __SCRIPT_VERSION = "7";
 	}
 
 	public static class GuiHandler {
@@ -806,19 +815,21 @@ public class FindCrypt extends GhidraScript {
 
 	public static class DatabaseManager {
 		// Structure of database file, for reference.
-		/********************************************************
-		 | MAGIC (4)    | Total Entries (2)          	        |
-		 | NameSize (4) | Name (x) | isCompressed(1) | BSize(4) |
-		 | Buffer (x)   | ...                                   |
-		 ********************************************************/
+		/*******************************************************************
+		 | MAGIC (4)    | Total Entries (2)           	                   |
+		 | NameSize (4) | Name (x) | isCompressed(1) | ESize(4) | BSize(4) |
+		 | Buffer (x)   | ...                                              |
+		 ******************************************************************/
 		
 		// Structure of the database entry.
 		public class EntryInfo {
 			private byte[] _buffer;
 			private String _name;
+			private int _elementSize;
 			
-			public EntryInfo(byte[] _buff, String _name) {
+			public EntryInfo(byte[] _buff, int _elementSize, String _name) {
 				this._buffer = _buff;
+				this._elementSize = _elementSize;
 				this._name = _name;
 			}
 		}
@@ -859,7 +870,7 @@ public class FindCrypt extends GhidraScript {
 						_stream.read(_name);
 						
 						var _isCompressed = _stream.readByte();
-						
+						var _elementSize = _stream.readInt();
 						var _buffSize = _stream.readInt();
 						if (_buffSize == 0) 
 							throw new Exception("An entry has no buffer (" + _name + ")");
@@ -882,9 +893,9 @@ public class FindCrypt extends GhidraScript {
 							}
 							byte uncompressed[] = byteout.toByteArray();
 							
-							this._consts.add(new EntryInfo(uncompressed, new String(_name, "UTF-8")));
+							this._consts.add(new EntryInfo(uncompressed, _elementSize, new String(_name, "UTF-8")));
 						} else 
-							this._consts.add(new EntryInfo(_buff, new String(_name, "UTF-8")));
+							this._consts.add(new EntryInfo(_buff, _elementSize, new String(_name, "UTF-8")));
 					}
 					
 					_stream.close();
@@ -928,18 +939,40 @@ public class FindCrypt extends GhidraScript {
 			return _dbHandler._consts;
 		}
 	}
+
+	public class FoundCryptoEntry {
+		private String _name;
+		private Address _address;
+		private Function _function;
+			
+		public FoundCryptoEntry(String _name, Address _address, Function _function) {
+			this._name = _name;
+			this._address = _address;
+			this._function = _function;
+		}
+
+		public String toString() {
+			if (_function != null) {
+				return String.format("%s (%s) -> %s\n", _function.getName(), _name, _address.toString());
+			} else {
+				return String.format("%s -> %s\n", _name, _address.toString());
+			}
+		}
+	}
+
+	public class FoundCryptoEntries extends ArrayList<FoundCryptoEntry> {
+	}
 	
 	@Override
 	protected void run() throws Exception {
+			
+		println("FindCrypt - Ghidra Edition by d3vil401 (https://d3vsite.org)\n" +
+					"Special thanks to Pawlos for fragmented constant scans\n" + 
+					"Original idea by Ilfak Guilfanov (http://hexblog.com)" +
+					"\n");
 		
-		System.out.println("FindCrypt - Ghidra Edition by d3vil401 (https://d3vsite.org)\n" +
-						   "Original idea by Ilfak Guilfanov (http://hexblog.com)" +
-						   "\n");
-		
-		if (isRunningHeadless()) {
-			// Nothing to do I guess?
-		}
-		
+		Boolean headless = isRunningHeadless();
+			
 		if (currentProgram == null) {
 			Msg.info(this, "No program loaded, aborting.");
 			return;
@@ -947,28 +980,60 @@ public class FindCrypt extends GhidraScript {
 		
 		WorksetManager.Initialize();
 
-		System.out.println("Loaded " + WorksetManager.GetDatabaseSize() + " signatures.");
+		println("Loaded " + WorksetManager.GetDatabaseSize() + " signatures.");
 		
-		var _ctr = 0;
 		var _formatted = "";
+
+		var foundEntries = new FoundCryptoEntries();
 		
 		for (var alg: WorksetManager.GetDB()) {
 			monitor.checkCanceled();
 			
 			var _found = currentProgram.getMemory().findBytes(currentProgram.getMinAddress(), alg._buffer, null, true, monitor);
 			if (_found != null) {
-				System.out.println("Found " + alg._name + ": 0x" + String.format("%08X", _found.getOffset()));
-				// I added a counter, in case we have duplicate patterns.
-				
-				_formatted += String.format("%s -> 0x%08X\n", alg._name, _found.getOffset());
-				_ctr++;
+				var function = currentProgram.getFunctionManager().getFunctionContaining(_found);
+				foundEntries.add(new FoundCryptoEntry(alg._name, _found, function));
+			} else {
+				if (alg._elementSize < SKIP_SMALLER_SUB_CONSTANTS) {
+					continue; //skip too small constants - too many false positvies 
+				}
+				var size = alg._buffer.length;
+				byte[] part = new byte[alg._elementSize];
+				var realHowManySubItems = size/alg._elementSize;				
+				var howManySubItemsToCheck = Math.min(realHowManySubItems, CRYPT_COUNTER);				
+				var howManyFound = 0;
+				ArrayList<Address> _addresses = new ArrayList<>();
+				for(var i = 0; i < howManySubItemsToCheck; i++) {
+					var offset = i * alg._elementSize;
+					System.arraycopy(alg._buffer, offset, part, 0, alg._elementSize);		
+					var _foundPart = currentProgram.getMemory().findBytes(currentProgram.getMinAddress(), part, null, true, monitor);
+					if (_foundPart != null) {
+						_addresses.add(_foundPart);
+						howManyFound++;
+					}
+				}				
+				if (howManyFound / realHowManySubItems >= DETECT_THRESHOLD) {
+					var firstAddress = _addresses.get(0);
+					var function = currentProgram.getFunctionManager().getFunctionContaining(firstAddress);
+					foundEntries.add(new FoundCryptoEntry(alg._name, firstAddress, function));
+				}
 			}
+		}
+
+		var _ctr = 0;
+		for (var entry: foundEntries) {
+			_formatted += entry.toString()+"\r\n";
+			_ctr++;
 		}
 		
 		// Only show results if something has been found.
-		if (_ctr >= 1)
-			GuiHandler.ShowMessage("FindCrypt Ghidra", "A total of " + _ctr + " signatures have been found.", _formatted, 1);
-		
+		if (_ctr >= 1) {		
+			if (headless) {
+				println("A total of " + _ctr + " signatures have been found.\r\n"+_formatted);				
+			} else {
+				GuiHandler.ShowMessage("FindCrypt Ghidra", "A total of " + _ctr + " signatures have been found.", _formatted, 1);
+			}
+		}
 		
 		_formatted = "";
 	}
