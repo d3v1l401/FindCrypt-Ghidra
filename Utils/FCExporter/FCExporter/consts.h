@@ -19,6 +19,7 @@ struct array_info_t
 {
 	const void *array;
 	size_t size;
+	size_t size_elem;
 	const char *name;
 	const char *algorithm;
 };
@@ -26,5 +27,5 @@ struct array_info_t
 extern const array_info_t non_sparse_consts[];
 extern const array_info_t sparse_consts[];
 
-#define ARR(x)  x, sizeof(x), #x
+#define ARR(x)  x, sizeof(x), sizeof(x[0]), #x
 

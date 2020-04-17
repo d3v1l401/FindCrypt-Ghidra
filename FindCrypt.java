@@ -708,9 +708,9 @@ import ghidra.program.model.listing.Function;
 import ghidra.util.Msg;
 
 public class FindCrypt extends GhidraScript {
-	private static final int 	CRYPT_COUNTER = 20;
+	private static final int CRYPT_COUNTER = 20;
 	private static final double DETECT_THRESHOLD = 0.8;
-	private static final int 	SKIP_SMALLER_SUB_CONSTANTS = 4;
+	private static final int SKIP_SMALLER_SUB_CONSTANTS = 4;
 
 	public static class InternalParams {
 		// Disable automatic database update.
