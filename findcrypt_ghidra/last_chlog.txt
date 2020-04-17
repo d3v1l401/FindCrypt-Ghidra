@@ -2,18 +2,13 @@ Hello FC-G people!
 
 WARNING: Mandatory script update (database structure change).
 
-With this update I'm bringing the compression for the database (GZip) which is a necessary function
-for the next updates.
-First of all, I tested the new script (and the old one) on a Linux Ghidra instance and it's working
-wonderfully with no problems, can't say about MacOSX since I do not own any.
-As for the next EXCITING updates:
+This update has been developed entirely by Pawlos who's been kindly helping the development of this plugin.
+Briefly, what the update brings is a new database structure and a script update that brings to surface a way to scan fragments of constants.
 
-- A surprise, if I manage to do it you'll love it.
+What does this mean exactly?
 
-So far is already a big improvement from the original FindCrypt, really grad this is going well and 
-you all liked this plugin so far.
-
-See ya next time with more interesting stuff.
+It means that even if the constants are partially the same as the original algorithm's code or if these have been partially obfuscated, 
+they can still be detected; all of this at the cost of a slower scan time.
 
 Happy hacking.
 

@@ -719,7 +719,7 @@ public class FindCrypt extends GhidraScript {
 		public static final boolean __FORCE_NO_SCRIPTUPDATE = false;
 		
 		// Current script version, used for enforcing; modifications not recommended unless you know what you're doing.
-		public static final String __SCRIPT_VERSION = "4";
+		public static final String __SCRIPT_VERSION = "7";
 	}
 
 	public static class GuiHandler {
@@ -967,8 +967,9 @@ public class FindCrypt extends GhidraScript {
 	protected void run() throws Exception {
 			
 		println("FindCrypt - Ghidra Edition by d3vil401 (https://d3vsite.org)\n" +
-						   "Original idea by Ilfak Guilfanov (http://hexblog.com)" +
-						   "\n");
+					"Special thanks to Pawlos for fragmented constant scans\n" + 
+					"Original idea by Ilfak Guilfanov (http://hexblog.com)" +
+					"\n");
 		
 		Boolean headless = isRunningHeadless();
 			
@@ -1011,7 +1012,7 @@ public class FindCrypt extends GhidraScript {
 						howManyFound++;
 					}
 				}				
-				if (howManyFound / realHowManySubItems >= DETECTION_THRESHOLD) {
+				if (howManyFound / realHowManySubItems >= DETECT_THRESHOLD) {
 					var firstAddress = _addresses.get(0);
 					var function = currentProgram.getFunctionManager().getFunctionContaining(firstAddress);
 					foundEntries.add(new FoundCryptoEntry(alg._name, firstAddress, function));
@@ -1028,7 +1029,7 @@ public class FindCrypt extends GhidraScript {
 		// Only show results if something has been found.
 		if (_ctr >= 1) {		
 			if (headless) {
-				println("A total of " + _ctr + " sigantures have been found.\r\n"+_formatted);				
+				println("A total of " + _ctr + " signatures have been found.\r\n"+_formatted);				
 			} else {
 				GuiHandler.ShowMessage("FindCrypt Ghidra", "A total of " + _ctr + " signatures have been found.", _formatted, 1);
 			}
