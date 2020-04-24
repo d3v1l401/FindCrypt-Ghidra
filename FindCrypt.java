@@ -674,6 +674,9 @@
 	Public License instead of this License.  But first, please read
 	<https://www.gnu.org/licenses/why-not-lgpl.html>.
  */
+// Quickly find references to cryptographic functions and constants.
+// This is a port of IDA Pro's FindCrypt plugin, with an updated and customizable signature database.
+//@category Analysis
 
 import java.io.BufferedInputStream;
 import java.io.BufferedWriter;
