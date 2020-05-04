@@ -723,7 +723,6 @@ public class FindCrypt extends GhidraScript {
 	}
 
 	public static class GuiHandler {
-
 		public static void ShowMessage(String _title, String _message, String _details, int _icon) {
 			MultiLineMessageDialog.showMessageDialog(null, _title, _message, _details, _icon);
 		}
@@ -834,9 +833,9 @@ public class FindCrypt extends GhidraScript {
 			}
 		}
 
-		private boolean   		 	_loaded = false;
-		private static final int 	_EXPECTED_MAGIC = 0xD3010401;
-		private short     		 	_totalEntries 	 = 0;
+		private boolean             _loaded         = false;
+		private static final int    _EXPECTED_MAGIC = 0xD3010401;
+		private short               _totalEntries   = 0;
 
 		private ArrayList<EntryInfo> _consts = new ArrayList<>();
 
@@ -845,9 +844,7 @@ public class FindCrypt extends GhidraScript {
 		}
 
 		public DatabaseManager(String _path) {
-
 			if (!this._loaded) {
-
 				try {
 					DataInputStream _stream = new DataInputStream(new FileInputStream(_path));
 					var _curMagic = _stream.readInt();
@@ -886,10 +883,10 @@ public class FindCrypt extends GhidraScript {
 							int res = 0;
 							byte buf[] = new byte[1024];
 							while (res >= 0) {
-							    res = gzin.read(buf, 0, buf.length);
-							    if (res > 0) {
-							        byteout.write(buf, 0, res);
-							    }
+								res = gzin.read(buf, 0, buf.length);
+								if (res > 0) {
+									byteout.write(buf, 0, res);
+								}
 							}
 							byte uncompressed[] = byteout.toByteArray();
 
@@ -904,9 +901,7 @@ public class FindCrypt extends GhidraScript {
 				} catch (Exception e) {
 					GuiHandler.ShowMessage("FindCrypt - Error" , "An error happened while loading the database.", e.getMessage(), 0);
 				}
-
 			}
-
 		}
 	}
 
@@ -965,7 +960,6 @@ public class FindCrypt extends GhidraScript {
 
 	@Override
 	protected void run() throws Exception {
-
 		println("FindCrypt - Ghidra Edition by d3vil401 (https://d3vsite.org)\n" +
 					"Special thanks to Pawlos for fragmented constant scans\n" +
 					"Original idea by Ilfak Guilfanov (http://hexblog.com)" +
@@ -995,7 +989,7 @@ public class FindCrypt extends GhidraScript {
 				foundEntries.add(new FoundCryptoEntry(alg._name, _found, function));
 			} else {
 				if (alg._elementSize < SKIP_SMALLER_SUB_CONSTANTS) {
-					continue; //skip too small constants - too many false positvies
+					continue; //skip too small constants - too many false positives
 				}
 				var size = alg._buffer.length;
 				byte[] part = new byte[alg._elementSize];
@@ -1037,5 +1031,4 @@ public class FindCrypt extends GhidraScript {
 
 		_formatted = "";
 	}
-
 }
