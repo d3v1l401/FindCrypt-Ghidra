@@ -978,11 +978,20 @@ public class FindCrypt extends GhidraScript {
 
 		println("Loaded " + WorksetManager.GetDatabaseSize() + " signatures.");
 
+		var memory = currentProgram.getMemory();
+		var searchStart = memory.getMinAddress();
+		var searchEnd = memory.getMaxAddress();
+
+		if (currentSelection != null && memory.contains(currentSelection)) {
+			searchStart = currentSelection.getMinAddress();
+			searchEnd = currentSelection.getMaxAddress();
+		}
+
 		var foundEntries = new FoundCryptoEntries();
 		for (var alg: WorksetManager.GetDB()) {
 			monitor.checkCanceled();
 
-			var _found = currentProgram.getMemory().findBytes(currentProgram.getMinAddress(), alg._buffer, null, true, monitor);
+			var _found = memory.findBytes(searchStart, searchEnd, alg._buffer, null, true, monitor);
 			if (_found != null) {
 				var function = currentProgram.getFunctionManager().getFunctionContaining(_found);
 				foundEntries.add(new FoundCryptoEntry(alg._name, _found, function));
@@ -999,7 +1008,7 @@ public class FindCrypt extends GhidraScript {
 				for(var i = 0; i < howManySubItemsToCheck; i++) {
 					var offset = i * alg._elementSize;
 					System.arraycopy(alg._buffer, offset, part, 0, alg._elementSize);
-					var _foundPart = currentProgram.getMemory().findBytes(currentProgram.getMinAddress(), part, null, true, monitor);
+					var _foundPart = memory.findBytes(searchStart, searchEnd, part, null, true, monitor);
 					if (_foundPart != null) {
 						_addresses.add(_foundPart);
 						howManyFound++;
