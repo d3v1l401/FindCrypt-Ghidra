@@ -675,6 +675,7 @@
 	<https://www.gnu.org/licenses/why-not-lgpl.html>.
  */
 
+import java.awt.Color;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -684,7 +685,6 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.InputStream;
-import java.lang.Math;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.channels.Channels;
@@ -696,8 +696,10 @@ import java.util.Arrays;
 import java.util.zip.GZIPInputStream;
 
 import docking.widgets.dialogs.MultiLineMessageDialog;
+import ghidra.app.plugin.core.colorizer.ColorizingService;
 import ghidra.app.script.GhidraScript;
-import ghidra.program.model.address.AddressSet;
+import ghidra.app.tablechooser.*;
+import ghidra.program.model.address.*;
 import ghidra.program.model.listing.Function;
 import ghidra.util.Msg;
 import ghidra.util.task.CancelOnlyWrappingTaskMonitor;
@@ -802,8 +804,6 @@ public class FindCrypt extends GhidraScript {
 			this._BASE = _baseUrl;
 			this._LOCAL = _basePath;
 		}
-
-
 	}
 
 	public static class DatabaseManager {
@@ -952,6 +952,90 @@ public class FindCrypt extends GhidraScript {
 	public class FoundCryptoEntries extends ArrayList<FoundCryptoEntry> {
 	}
 
+	private AddressRange inflateRange(AddressRange range) {
+		return new AddressRangeImpl(currentProgram.getListing().getCodeUnitContaining(range.getMinAddress()).getMinAddress(),
+				currentProgram.getListing().getCodeUnitContaining(range.getMaxAddress()).getMaxAddress());
+	}
+
+	private TableChooserExecutor createTableExecutor() {
+		TableChooserExecutor executor = new TableChooserExecutor() {
+			ColorizingService colorizingService = state.getTool().getService(ColorizingService.class);
+
+			@Override
+			public String getButtonName() {
+				return "Mark";
+			}
+
+			@Override
+			public boolean execute(AddressableRowObject rowObject) {
+				if(colorizingService == null)
+					return false;
+
+				ResultRow row = (ResultRow)rowObject;
+				Color c = colorizingService.getColorFromUser(new Color(200, 200, 255));
+
+				var transaction = currentProgram.startTransaction("Mark block");
+				AddressRangeIterator it = row.addresses.getAddressRanges();
+				int i = 0;
+				while(it.hasNext()) {
+					AddressRange r = it.next();
+					if(getPreComment(r.getMinAddress()) == null)
+						setPreComment(r.getMinAddress(), "FindCrypt " + row.name + " #" + i++);
+					colorizingService.setBackgroundColor(new AddressSet(inflateRange(r)), c);
+				}
+				currentProgram.endTransaction(transaction, true);
+
+				return false;
+			}
+		};
+
+		return executor;
+	}
+
+	private class ResultRow implements AddressableRowObject {
+
+		private AddressSet addresses;
+		private String name;
+		private double detectionRate;
+
+		public ResultRow(FoundCryptoEntry entry) {
+			this.addresses= entry._addresses;
+			this.name = entry._name;
+			this.detectionRate = entry._detectionRate;
+		}
+
+		@Override
+		public Address getAddress() {
+			return addresses.getMinAddress();
+		}
+	}
+
+	private void configureTableColumns(TableChooserDialog dialog) {
+		dialog.addCustomColumn(new StringColumnDisplay() {
+			@Override
+			public String getColumnValue(AddressableRowObject rowObject) {
+				return ((ResultRow)rowObject).name;
+			}
+
+			@Override
+			public String getColumnName() {
+				return "Name";
+			}
+		});
+
+		dialog.addCustomColumn(new AbstractComparableColumnDisplay<Double>() {
+			@Override
+			public Double getColumnValue(AddressableRowObject rowObject) {
+				return ((ResultRow)rowObject).detectionRate;
+			}
+
+			@Override
+			public String getColumnName() {
+				return "Detection Rate";
+			}
+		});
+	}
+
 	@Override
 	protected void run() throws Exception {
 		println("FindCrypt - Ghidra Edition by d3vil401 (https://d3vsite.org)\n" +
@@ -1032,10 +1116,16 @@ public class FindCrypt extends GhidraScript {
 		if (foundEntries.size() >= 1) {
 			String messageString = String.format("A total of %d signatures have been found in %dms.",
 				foundEntries.size(), System.currentTimeMillis() - startTime);
-			if (headless) {
+			if (headless)
 				println(messageString + System.lineSeparator() + _formatted);
-			} else {
-				GuiHandler.ShowMessage("FindCrypt Ghidra", messageString, _formatted, 1);
+			else {
+				println(messageString);
+				var dialog = createTableChooserDialog("FindCrypt", createTableExecutor());
+				configureTableColumns(dialog);
+				for (var e : foundEntries)
+					dialog.add(new ResultRow(e));
+
+				dialog.show();
 			}
 		}
 	}
