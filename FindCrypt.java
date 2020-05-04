@@ -701,6 +701,7 @@ import ghidra.app.script.GhidraScript;
 import ghidra.program.model.address.Address;
 import ghidra.program.model.listing.Function;
 import ghidra.util.Msg;
+import ghidra.util.task.CancelOnlyWrappingTaskMonitor;
 
 public class FindCrypt extends GhidraScript {
 	private static final int CRYPT_COUNTER = 20;
@@ -968,7 +969,10 @@ public class FindCrypt extends GhidraScript {
 		WorksetManager.Initialize();
 
 		println("Loaded " + WorksetManager.GetDatabaseSize() + " signatures.");
+		monitor.initialize(WorksetManager.GetDatabaseSize());
+		monitor.setProgress(0);
 
+		var cancelMonitor = new CancelOnlyWrappingTaskMonitor(monitor);
 		var memory = currentProgram.getMemory();
 		var searchStart = memory.getMinAddress();
 		var searchEnd = memory.getMaxAddress();
@@ -981,8 +985,9 @@ public class FindCrypt extends GhidraScript {
 		var foundEntries = new FoundCryptoEntries();
 		for (var alg: WorksetManager.GetDB()) {
 			monitor.checkCanceled();
+			monitor.setMessage("Looking for " + alg._name);
 
-			var _found = memory.findBytes(searchStart, searchEnd, alg._buffer, null, true, monitor);
+			var _found = memory.findBytes(searchStart, searchEnd, alg._buffer, null, true, cancelMonitor);
 			if (_found != null) {
 				var function = currentProgram.getFunctionManager().getFunctionContaining(_found);
 				foundEntries.add(new FoundCryptoEntry(alg._name, _found, function));
@@ -999,7 +1004,7 @@ public class FindCrypt extends GhidraScript {
 					var offset = i * alg._elementSize;
 					var _foundPart = memory.findBytes(searchStart, searchEnd,
 						Arrays.copyOfRange(alg._buffer, offset, offset + alg._elementSize),
-						null, true, monitor);
+						null, true, cancelMonitor);
 
 					if (_foundPart != null)
 						_addresses.add(_foundPart);
@@ -1010,6 +1015,8 @@ public class FindCrypt extends GhidraScript {
 					foundEntries.add(new FoundCryptoEntry(alg._name, firstAddress, function));
 				}
 			}
+
+			monitor.incrementProgress(1);
 		}
 
 		var _formatted = foundEntries.stream()
