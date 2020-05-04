@@ -699,6 +699,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 
 import docking.widgets.dialogs.MultiLineMessageDialog;
@@ -972,14 +973,12 @@ public class FindCrypt extends GhidraScript {
 			return;
 		}
 
+		var startTime = System.currentTimeMillis();
 		WorksetManager.Initialize();
 
 		println("Loaded " + WorksetManager.GetDatabaseSize() + " signatures.");
 
-		var _formatted = "";
-
 		var foundEntries = new FoundCryptoEntries();
-
 		for (var alg: WorksetManager.GetDB()) {
 			monitor.checkCanceled();
 
@@ -1014,21 +1013,19 @@ public class FindCrypt extends GhidraScript {
 			}
 		}
 
-		var _ctr = 0;
-		for (var entry: foundEntries) {
-			_formatted += entry.toString()+"\r\n";
-			_ctr++;
-		}
+		var _formatted = foundEntries.stream()
+			.map(e -> e.toString())
+			.collect(Collectors.joining(System.lineSeparator()));
 
 		// Only show results if something has been found.
-		if (_ctr >= 1) {
+		if (foundEntries.size() >= 1) {
+			String messageString = String.format("A total of %d signatures have been found in %dms.",
+				foundEntries.size(), System.currentTimeMillis() - startTime);
 			if (headless) {
-				println("A total of " + _ctr + " signatures have been found.\r\n"+_formatted);
+				println(messageString + System.lineSeparator() + _formatted);
 			} else {
-				GuiHandler.ShowMessage("FindCrypt Ghidra", "A total of " + _ctr + " signatures have been found.", _formatted, 1);
+				GuiHandler.ShowMessage("FindCrypt Ghidra", messageString, _formatted, 1);
 			}
 		}
-
-		_formatted = "";
 	}
 }
