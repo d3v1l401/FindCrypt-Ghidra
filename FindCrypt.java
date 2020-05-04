@@ -688,8 +688,9 @@ import java.lang.Math;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.channels.Channels;
-import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.stream.Collectors;
@@ -771,7 +772,7 @@ public class FindCrypt extends GhidraScript {
 				InputStream in = new BufferedInputStream(urlConnection.getInputStream());
 
 				var _last = Integer.parseInt(new String(in.readAllBytes(), "UTF-8"));
-				var _local = Integer.parseInt(new String(new FileInputStream(this._LOCAL + "last_update.txt").readAllBytes(), "UTF-8"));
+				var _local = Integer.parseInt(Files.readString(Paths.get(this._LOCAL + "last_update.txt")));
 
 				if (_last > _local) {
 					System.out.println("A new version of the database is being downloaded (" + _local + " -> " + _last + ").");
@@ -781,7 +782,6 @@ public class FindCrypt extends GhidraScript {
 
 					new File(this._LOCAL + "database.d3v").delete();
 					FileOutputStream fileOutputStream = new FileOutputStream(this._LOCAL + "database.d3v");
-					FileChannel fileChannel = fileOutputStream.getChannel();
 					fileOutputStream.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
 					fileOutputStream.close();
 
@@ -839,8 +839,7 @@ public class FindCrypt extends GhidraScript {
 
 		public DatabaseManager(String _path) {
 			if (!this._loaded) {
-				try {
-					DataInputStream _stream = new DataInputStream(new FileInputStream(_path));
+				try (DataInputStream _stream = new DataInputStream(new FileInputStream(_path))) {
 					var _curMagic = _stream.readInt();
 
 					if (_curMagic != _EXPECTED_MAGIC)
@@ -941,11 +940,10 @@ public class FindCrypt extends GhidraScript {
 		}
 
 		public String toString() {
-			if (_function != null) {
+			if (_function != null)
 				return String.format("%s (%s) -> %s\n", _function.getName(), _name, _address.toString());
-			} else {
-				return String.format("%s -> %s\n", _name, _address.toString());
-			}
+
+			return String.format("%s -> %s\n", _name, _address.toString());
 		}
 	}
 
