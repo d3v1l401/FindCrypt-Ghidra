@@ -676,7 +676,6 @@
  */
 
 import java.io.BufferedInputStream;
-import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -684,21 +683,15 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.lang.Math;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
-import java.security.Timestamp;
-import java.util.Arrays;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
+import java.util.Arrays;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 
@@ -996,25 +989,24 @@ public class FindCrypt extends GhidraScript {
 				var function = currentProgram.getFunctionManager().getFunctionContaining(_found);
 				foundEntries.add(new FoundCryptoEntry(alg._name, _found, function));
 			} else {
-				if (alg._elementSize < SKIP_SMALLER_SUB_CONSTANTS) {
+				if (alg._elementSize < SKIP_SMALLER_SUB_CONSTANTS)
 					continue; //skip too small constants - too many false positives
-				}
+
 				var size = alg._buffer.length;
-				byte[] part = new byte[alg._elementSize];
-				var realHowManySubItems = size/alg._elementSize;
-				var howManySubItemsToCheck = Math.min(realHowManySubItems, CRYPT_COUNTER);
-				var howManyFound = 0;
+				var totalSubItems = size / alg._elementSize;
+				var subItemsToCheck = Math.min(totalSubItems, CRYPT_COUNTER);
+
 				ArrayList<Address> _addresses = new ArrayList<>();
-				for(var i = 0; i < howManySubItemsToCheck; i++) {
+				for(var i = 0; i < subItemsToCheck; i++) {
 					var offset = i * alg._elementSize;
-					System.arraycopy(alg._buffer, offset, part, 0, alg._elementSize);
-					var _foundPart = memory.findBytes(searchStart, searchEnd, part, null, true, monitor);
-					if (_foundPart != null) {
+					var _foundPart = memory.findBytes(searchStart, searchEnd,
+						Arrays.copyOfRange(alg._buffer, offset, offset + alg._elementSize),
+						null, true, monitor);
+
+					if (_foundPart != null)
 						_addresses.add(_foundPart);
-						howManyFound++;
-					}
 				}
-				if (howManyFound / realHowManySubItems >= DETECT_THRESHOLD) {
+				if (_addresses.size() / totalSubItems >= DETECT_THRESHOLD) {
 					var firstAddress = _addresses.get(0);
 					var function = currentProgram.getFunctionManager().getFunctionContaining(firstAddress);
 					foundEntries.add(new FoundCryptoEntry(alg._name, firstAddress, function));
