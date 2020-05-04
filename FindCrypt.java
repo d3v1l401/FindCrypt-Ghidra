@@ -693,12 +693,11 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 
 import docking.widgets.dialogs.MultiLineMessageDialog;
 import ghidra.app.script.GhidraScript;
-import ghidra.program.model.address.Address;
+import ghidra.program.model.address.AddressSet;
 import ghidra.program.model.listing.Function;
 import ghidra.util.Msg;
 import ghidra.util.task.CancelOnlyWrappingTaskMonitor;
@@ -931,20 +930,22 @@ public class FindCrypt extends GhidraScript {
 
 	public class FoundCryptoEntry {
 		private String _name;
-		private Address _address;
+		private AddressSet _addresses;
 		private Function _function;
+		private double _detectionRate;
 
-		public FoundCryptoEntry(String _name, Address _address, Function _function) {
+		public FoundCryptoEntry(String _name, AddressSet _addresses, Double _detectionRate) {
 			this._name = _name;
-			this._address = _address;
-			this._function = _function;
+			this._addresses = _addresses;
+			this._function = getFunctionContaining(_addresses.getMinAddress());
+			this._detectionRate = _detectionRate;
 		}
 
 		public String toString() {
 			if (_function != null)
-				return String.format("%s (%s) -> %s\n", _function.getName(), _name, _address.toString());
+				return String.format("%s (%s) -> %s\n", _function.getName(), _name, _addresses.getMinAddress().toString());
 
-			return String.format("%s -> %s\n", _name, _address.toString());
+			return String.format("%s -> %s\n", _name, _addresses.getMinAddress().toString());
 		}
 	}
 
@@ -987,10 +988,13 @@ public class FindCrypt extends GhidraScript {
 			monitor.checkCanceled();
 			monitor.setMessage("Looking for " + alg._name);
 
+			var addressSet = new AddressSet();
+			var detectionRate = 0.0;
+
 			var _found = memory.findBytes(searchStart, searchEnd, alg._buffer, null, true, cancelMonitor);
 			if (_found != null) {
-				var function = currentProgram.getFunctionManager().getFunctionContaining(_found);
-				foundEntries.add(new FoundCryptoEntry(alg._name, _found, function));
+				addressSet.add(_found, _found.add(alg._buffer.length));
+				detectionRate = 1.0;
 			} else {
 				if (alg._elementSize < SKIP_SMALLER_SUB_CONSTANTS)
 					continue; //skip too small constants - too many false positives
@@ -999,7 +1003,6 @@ public class FindCrypt extends GhidraScript {
 				var totalSubItems = size / alg._elementSize;
 				var subItemsToCheck = Math.min(totalSubItems, CRYPT_COUNTER);
 
-				ArrayList<Address> _addresses = new ArrayList<>();
 				for(var i = 0; i < subItemsToCheck; i++) {
 					var offset = i * alg._elementSize;
 					var _foundPart = memory.findBytes(searchStart, searchEnd,
@@ -1007,21 +1010,23 @@ public class FindCrypt extends GhidraScript {
 						null, true, cancelMonitor);
 
 					if (_foundPart != null)
-						_addresses.add(_foundPart);
+						addressSet.add(_foundPart, _foundPart.add(alg._elementSize));
 				}
-				if (_addresses.size() / totalSubItems >= DETECT_THRESHOLD) {
-					var firstAddress = _addresses.get(0);
-					var function = currentProgram.getFunctionManager().getFunctionContaining(firstAddress);
-					foundEntries.add(new FoundCryptoEntry(alg._name, firstAddress, function));
-				}
+				detectionRate = (double)addressSet.getNumAddressRanges() / totalSubItems;
 			}
+
+			if(!addressSet.isEmpty() && detectionRate >= DETECT_THRESHOLD)
+				foundEntries.add(new FoundCryptoEntry(alg._name, addressSet, detectionRate));
 
 			monitor.incrementProgress(1);
 		}
 
-		var _formatted = foundEntries.stream()
-			.map(e -> e.toString())
-			.collect(Collectors.joining(System.lineSeparator()));
+		var _formatted = "";
+		for(var entry : foundEntries) {
+			_formatted += entry.toString() + System.lineSeparator();
+			createBookmark(entry._addresses.getMinAddress(), "FindCrypt",
+				String.format("%s dr=%.2f", entry._name, entry._detectionRate));
+		}
 
 		// Only show results if something has been found.
 		if (foundEntries.size() >= 1) {
