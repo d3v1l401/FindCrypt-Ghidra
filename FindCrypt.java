@@ -675,7 +675,6 @@
 	<https://www.gnu.org/licenses/why-not-lgpl.html>.
  */
 
-import java.awt.Color;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -696,12 +695,21 @@ import java.util.Arrays;
 import java.util.zip.GZIPInputStream;
 
 import docking.widgets.dialogs.MultiLineMessageDialog;
-import ghidra.app.plugin.core.colorizer.ColorizingService;
 import ghidra.app.script.GhidraScript;
+import ghidra.app.services.ConsoleService;
 import ghidra.app.tablechooser.*;
+import ghidra.app.util.datatype.DataTypeSelectionDialog;
+import ghidra.framework.plugintool.PluginTool;
 import ghidra.program.model.address.*;
+import ghidra.program.model.data.ArrayDataType;
+import ghidra.program.model.data.DataType;
+import ghidra.program.model.data.Undefined;
+import ghidra.program.model.data.Undefined4DataType;
+import ghidra.program.model.listing.Data;
+import ghidra.program.model.listing.DataIterator;
 import ghidra.program.model.listing.Function;
 import ghidra.util.Msg;
+import ghidra.util.data.DataTypeParser.AllowedDataTypes;
 import ghidra.util.task.CancelOnlyWrappingTaskMonitor;
 
 public class FindCrypt extends GhidraScript {
@@ -929,13 +937,13 @@ public class FindCrypt extends GhidraScript {
 	}
 
 	public class FoundCryptoEntry {
-		private String _name;
+		private DatabaseManager.EntryInfo _dbentry;
 		private AddressSet _addresses;
 		private Function _function;
 		private double _detectionRate;
 
-		public FoundCryptoEntry(String _name, AddressSet _addresses, Double _detectionRate) {
-			this._name = _name;
+		public FoundCryptoEntry(DatabaseManager.EntryInfo _dbentry, AddressSet _addresses, Double _detectionRate) {
+			this._dbentry = _dbentry;
 			this._addresses = _addresses;
 			this._function = getFunctionContaining(_addresses.getMinAddress());
 			this._detectionRate = _detectionRate;
@@ -943,49 +951,83 @@ public class FindCrypt extends GhidraScript {
 
 		public String toString() {
 			if (_function != null)
-				return String.format("%s (%s) -> %s\n", _function.getName(), _name, _addresses.getMinAddress().toString());
+				return String.format("%s (%s) -> %s\n", _function.getName(), _dbentry._name, _addresses.getMinAddress().toString());
 
-			return String.format("%s -> %s\n", _name, _addresses.getMinAddress().toString());
+			return String.format("%s -> %s\n", _dbentry._name, _addresses.getMinAddress().toString());
+		}
+
+		public Boolean isFullMatch() {
+			return _detectionRate == 1.0;
 		}
 	}
 
 	public class FoundCryptoEntries extends ArrayList<FoundCryptoEntry> {
 	}
 
-	private AddressRange inflateRange(AddressRange range) {
-		return new AddressRangeImpl(currentProgram.getListing().getCodeUnitContaining(range.getMinAddress()).getMinAddress(),
-				currentProgram.getListing().getCodeUnitContaining(range.getMaxAddress()).getMaxAddress());
-	}
-
 	private TableChooserExecutor createTableExecutor() {
 		TableChooserExecutor executor = new TableChooserExecutor() {
-			ColorizingService colorizingService = state.getTool().getService(ColorizingService.class);
 
 			@Override
 			public String getButtonName() {
-				return "Mark";
+				return "Create Data";
 			}
 
 			@Override
 			public boolean execute(AddressableRowObject rowObject) {
-				if(colorizingService == null)
-					return false;
-
 				ResultRow row = (ResultRow)rowObject;
-				Color c = colorizingService.getColorFromUser(new Color(200, 200, 255));
 
-				var transaction = currentProgram.startTransaction("Mark block");
-				AddressRangeIterator it = row.addresses.getAddressRanges();
-				int i = 0;
-				while(it.hasNext()) {
-					AddressRange r = it.next();
-					if(getPreComment(r.getMinAddress()) == null)
-						setPreComment(r.getMinAddress(), "FindCrypt " + row.name + " #" + i++);
-					colorizingService.setBackgroundColor(new AddressSet(inflateRange(r)), c);
+				boolean commit = true;
+				var transaction = currentProgram.startTransaction(getScriptName() + ": Create data");
+				if(row.entry.isFullMatch()) {
+					try {
+						createDataInRange(row.entry._addresses.getFirstRange(), row.entry._dbentry);
+					}
+					catch (Exception e) {
+						println("Creating Data Failed: " + e.getClass().getSimpleName() + ": " + e.getMessage());
+						ConsoleService console = state.getTool().getService(ConsoleService.class);
+						e.printStackTrace(console.getStdOut());
+						commit = false;
+					}
 				}
-				currentProgram.endTransaction(transaction, true);
+				currentProgram.endTransaction(transaction, commit);
+				return true;
+			}
 
-				return false;
+			private Data createDataInRange(AddressRange range, DatabaseManager.EntryInfo alg) throws Exception {
+				ArrayList<Data> dataToDestroy = new ArrayList<>();
+				Data data = getDataContaining(range.getMinAddress());
+				if(data != null && data.isDefined() && !Undefined.class.isAssignableFrom(data.getDataType().getClass()))
+					throw new Exception("New data overlaps with defined data");
+				else if(data != null && data.getMinAddress() != range.getMinAddress())
+					dataToDestroy.add(data);
+
+				DataIterator di = currentProgram.getListing().getData(new AddressSet(range), true);
+				while(di.hasNext()) {
+					data = di.next();
+					if(data.isDefined() && !Undefined.class.isAssignableFrom(data.getDataType().getClass()))
+						throw new Exception("New data overlaps with defined data");
+
+					dataToDestroy.add(data);
+				}
+
+				for (Data d : dataToDestroy)
+					removeData(d);
+
+				PluginTool tool = state.getTool();
+				DataType suggesteDataType = Undefined4DataType.dataType;
+				var dialog = new DataTypeSelectionDialog(tool, currentProgram.getDataTypeManager(),
+						alg._elementSize, AllowedDataTypes.FIXED_LENGTH);
+
+				dialog.setInitialDataType(suggesteDataType);
+				dialog.setTitle("Choose datatype for elements of: " + alg._elementSize);
+				tool.showDialog(dialog);
+
+				DataType chosenType = dialog.getUserChosenDataType();
+				if (chosenType.getLength() % alg._elementSize != 0)
+					throw new Exception("Selected datatype doesn't have suitable length");
+
+				ArrayDataType adt = new ArrayDataType(chosenType, (int) (range.getLength() / chosenType.getLength()), chosenType.getLength());
+				return createData(range.getMinAddress(), adt);
 			}
 		};
 
@@ -993,20 +1035,15 @@ public class FindCrypt extends GhidraScript {
 	}
 
 	private class ResultRow implements AddressableRowObject {
-
-		private AddressSet addresses;
-		private String name;
-		private double detectionRate;
+		private FoundCryptoEntry entry;
 
 		public ResultRow(FoundCryptoEntry entry) {
-			this.addresses= entry._addresses;
-			this.name = entry._name;
-			this.detectionRate = entry._detectionRate;
+			this.entry = entry;
 		}
 
 		@Override
 		public Address getAddress() {
-			return addresses.getMinAddress();
+			return entry._addresses.getMinAddress();
 		}
 	}
 
@@ -1014,7 +1051,7 @@ public class FindCrypt extends GhidraScript {
 		dialog.addCustomColumn(new StringColumnDisplay() {
 			@Override
 			public String getColumnValue(AddressableRowObject rowObject) {
-				return ((ResultRow)rowObject).name;
+				return ((ResultRow)rowObject).entry._dbentry._name;
 			}
 
 			@Override
@@ -1026,7 +1063,7 @@ public class FindCrypt extends GhidraScript {
 		dialog.addCustomColumn(new AbstractComparableColumnDisplay<Double>() {
 			@Override
 			public Double getColumnValue(AddressableRowObject rowObject) {
-				return ((ResultRow)rowObject).detectionRate;
+				return ((ResultRow)rowObject).entry._detectionRate;
 			}
 
 			@Override
@@ -1100,7 +1137,7 @@ public class FindCrypt extends GhidraScript {
 			}
 
 			if(!addressSet.isEmpty() && detectionRate >= DETECT_THRESHOLD)
-				foundEntries.add(new FoundCryptoEntry(alg._name, addressSet, detectionRate));
+				foundEntries.add(new FoundCryptoEntry(alg, addressSet, detectionRate));
 
 			monitor.incrementProgress(1);
 		}
@@ -1109,7 +1146,7 @@ public class FindCrypt extends GhidraScript {
 		for(var entry : foundEntries) {
 			_formatted += entry.toString() + System.lineSeparator();
 			createBookmark(entry._addresses.getMinAddress(), "FindCrypt",
-				String.format("%s dr=%.2f", entry._name, entry._detectionRate));
+				String.format("%s dr=%.2f", entry._dbentry._name, entry._detectionRate));
 		}
 
 		// Only show results if something has been found.
