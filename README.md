@@ -1,5 +1,8 @@
 # FindCrypt - Ghidra Edition
 
+> This project is discountinued as I can't keep it maintained, please refer to the Forks or variations of this project such as [this one](https://github.com/TorgoTorgo/ghidra-findcrypt).
+> Feel free to open an issue if you wish to add your project to the list of derivative work, with a short description
+
 While for years we used IDA Pro and its incredible plugins developed by its huge community, Ghidra came out recently (at the time of writing) showing a lot of potential and an incredible modular design for customization both in Python or Java.
 
 As most of you know, FindCrypt, a plugin made by nonetheless than Ilfak Guilfanov himself for IDA, is essential for quickly find references to Cryptography functions in the target and extremely useful in the field of Reverse Engineering.
