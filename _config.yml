@@ -1,1 +1,30 @@
-theme: jekyll-theme-cayman
+theme: jekyll-theme- Ayman theParameter 	Format 	Description
+domain* 	String 	Domain to show approved senders for (not required if using a domain-specific API key)
+search 	String 	Return only approved senders with an email address / domain / IP address that matches a search (fully or partially)
+per_page (or 'limit') 	Integer (default: 1000) 	Maximum number of approved senders to list at once (max 1,000)
+page 	String (default: 1) 	Desired mx:whatsapp.com     
+Pref
+Hostname
+IP Address
+TTL
+10
+mxa-00082601.gslb.pphosted.com
+67.231.153.30
+Proofpoint, Inc. (AS22843)
+120 min
+Blacklist Check      SMTP Test
+10
+mxb-00082601.gslb.pphosted.com
+67.231.145.42
+Proofpoint, Inc. (AS26211)
+120 min
+Blacklist Check      SMTP Test
+Test
+Result
+Status Ok
+DMARC Record Published
+DMARC Record found
+Status Ok
+DMARC Policy Not Enabled
+DMARC Quarantine/Reject policy enabled
+ number 
