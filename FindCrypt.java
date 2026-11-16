@@ -1109,7 +1109,7 @@ public class FindCrypt extends GhidraScript {
 
 		var foundEntries = new FoundCryptoEntries();
 		for (var alg: WorksetManager.GetDB()) {
-			monitor.checkCanceled();
+			monitor.checkCancelled();
 			monitor.setMessage("Looking for " + alg._name);
 
 			var addressSet = new AddressSet();
